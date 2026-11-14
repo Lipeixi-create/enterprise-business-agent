@@ -2,9 +2,18 @@
 [![CI](https://github.com/Lipeixi-create/enterprise-business-agent/actions/workflows/ci.yml/badge.svg)](https://github.com/Lipeixi-create/enterprise-business-agent/actions/workflows/ci.yml)
 # Enterprise Business Agent
 
-**企业多部门经营分析 Agent**：把一句中文经营问题（如“为什么本季度利润下降？”）变成一次受控的自主调查——Agent 自己决定下一步查什么、调用哪个工具，最终输出**每个数字都能追溯到证据**的归因结论与结构化报告。
+**一句话**：输入「为什么本季度利润下降？」，Agent 自己规划下一步查什么、调用哪个工具，输出一份**每个数字都能点开追溯到证据**的归因报告。
 
-> 核心不是“让 LLM 写 SQL”，而是用**语义层 + 确定性计算 + 证据链**把 LLM 的自主性约束在可信边界内。
+**30 秒看懂这个项目：**
+
+| | |
+| --- | --- |
+| **跑起来** | `bash scripts/run_local_demo.sh` → <http://127.0.0.1:8000/workbench/>，SQLite 即可，不需要 Docker 或 PostgreSQL |
+| **数字怎么可信** | 模型不写业务 SQL：主路径由 34 个指标定义编译查询，兜底 SQL 也必须过 AST 白名单；报告里每个数值都要通过 Evidence 校验 |
+| **结论怎么可信** | 92 题真实模型评测 as-run **69/90**，失败项、修复记录、未验证项全部公开，没有按题目调阈值 |
+| **工程上做了什么** | 工具次数/时间/Token 三重预算、Run 租约与 fencing、只读数据库角色、失败可恢复的 Checkpoint |
+
+> 五个业务域是**工具维度**，不是 Agent 维度——所以是单 Agent + 工具注册表，不是多 Agent 编队。
 
 `Python 3.11+` · `FastAPI` · `LangGraph` · `PostgreSQL 16` · `SQLAlchemy 2` · `Pydantic v2` · `SQLGlot` · `OpenTelemetry`
 
@@ -206,7 +215,7 @@ pip install -r requirements.lock   # 可复现依赖（由 requirements.txt 编�
 pytest -q                          # 离线套件；未配置 PostgreSQL 时 30 个 PG 专项 skip
 ```
 
-CI 使用同一份 lockfile 在 Python 3.11 上运行离线套件，见 [`.github/workflows/ci.yml`](.github/workflows/ci.yml)。
+CI 使用同一份 lockfile 在 Python 3.11 上运行，并启动一个 PostgreSQL 16 service（含只读角色与最小权限运行时角色），**30 个 PG 专项在 CI 里真实执行**而不是跳过，见 [`.github/workflows/ci.yml`](.github/workflows/ci.yml)。
 
 ---
 
@@ -272,10 +281,11 @@ docs/                 # 开发文档 + 设计文档；阶段性报告归档在 d
 
 | 项目 | 结果 |
 | --- | --- |
-| 离线回归 | **765 passed, 30 skipped**（30 个 skip 为未配置 PostgreSQL 的专项） |
+| 离线回归 | **765 passed, 30 skipped**（本机未配置 PostgreSQL）；接上 PostgreSQL 后 **795 passed, 0 skipped** |
+| 语句覆盖率 | **90%**（11,774 条语句 / 1,236 条未覆盖，`pytest -q --cov=enterprise_business_agent`） |
 | 真实模型全量评测 | 92 条语料，90 条计分，真实调用 210 次，as-run **69/90**；离线后验 **76/90** |
 | 多种子稳定性 | 24 条 × seeds 42/7/123，通过率 **54.55% / 63.64% / 72.73%** |
-| 真实 PostgreSQL | 最小权限、持久化、Checkpoint 恢复、并发抢占、Lease/Fencing、幂等、隔离：**30 passed / 0 failed** |
+| 真实 PostgreSQL | 最小权限、持久化、Checkpoint 恢复、并发抢占、Lease/Fencing、幂等、隔离：**30 passed / 0 failed**，CI 每次提交用 `postgres:16` 重跑 |
 | Docker / Compose | 真实镜像构建、PG16 + init/迁移/种子（23 张表）、健康检查通过 |
 | 外部 OTLP | 自建 `otelcol-contrib` 接收 **257 个 span**，覆盖完整工作流 |
 | 浏览器 E2E | 主机与容器后端各一轮 `ok=true`（提问→调查→报告→Evidence→审批→历史→取消恢复） |
