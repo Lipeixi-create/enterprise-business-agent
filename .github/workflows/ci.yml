@@ -12,7 +12,25 @@ concurrency:
 jobs:
   test:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: eba_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d eba_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    env:
+      EBA_TEST_POSTGRES_URL: postgresql+psycopg://postgres:postgres@127.0.0.1:5432/eba_test
+      EBA_TEST_POSTGRES_READONLY_URL: postgresql+psycopg://eba_readonly:readonly@127.0.0.1:5432/eba_test
+      EBA_TEST_POSTGRES_RUNTIME_URL: postgresql+psycopg://eba_runtime:runtime@127.0.0.1:5432/eba_test
     steps:
       - uses: actions/checkout@v4
 
@@ -28,7 +46,16 @@ jobs:
           pip install -r requirements.lock
           pip install "opentelemetry-sdk>=1.25,<2.0" "opentelemetry-exporter-otlp-proto-http>=1.25,<2.0"
 
-      - name: Run offline test suite
+      - name: Create least-privilege test roles
+        run: |
+          PGPASSWORD=postgres psql -h 127.0.0.1 -U postgres -d eba_test -v ON_ERROR_STOP=1 \
+            -c "CREATE ROLE eba_readonly LOGIN PASSWORD 'readonly' NOSUPERUSER NOCREATEDB NOCREATEROLE" \
+            -c "CREATE ROLE eba_runtime LOGIN PASSWORD 'runtime' NOSUPERUSER NOCREATEDB NOCREATEROLE" \
+            -c "GRANT CONNECT ON DATABASE eba_test TO eba_readonly, eba_runtime" \
+            -c "GRANT USAGE ON SCHEMA public TO eba_readonly, eba_runtime" \
+            -c "ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public GRANT SELECT ON TABLES TO eba_readonly"
+
+      - name: Run test suite
         run: pytest -q
 
       - name: Import application
