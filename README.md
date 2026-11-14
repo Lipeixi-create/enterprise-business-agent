@@ -1,3 +1,5 @@
+
+[![CI](https://github.com/Lipeixi-create/enterprise-business-agent/actions/workflows/ci.yml/badge.svg)](https://github.com/Lipeixi-create/enterprise-business-agent/actions/workflows/ci.yml)
 # Enterprise Business Agent
 
 **企业多部门经营分析 Agent**：把一句中文经营问题（如“为什么本季度利润下降？”）变成一次受控的自主调查——Agent 自己决定下一步查什么、调用哪个工具，最终输出**每个数字都能追溯到证据**的归因结论与结构化报告。
