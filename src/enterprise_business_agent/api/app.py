@@ -75,11 +75,12 @@ def create_app(
 
     owns_engine = False
     if session_factory is None:
-        engine = make_readonly_engine(
-            settings.application_database_url,
-            settings.query_timeout_ms,
-        )
-        owns_engine = True
+        if engine is None:
+            engine = make_readonly_engine(
+                settings.application_database_url,
+                settings.query_timeout_ms,
+            )
+            owns_engine = True
         from sqlalchemy.orm import Session, sessionmaker
 
         session_factory = sessionmaker(
