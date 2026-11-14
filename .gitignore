@@ -1,0 +1,43 @@
+# Secrets and local environment
+.env
+.env.*
+!.env.example
+!.env.docker.example
+*.pem
+*.key
+
+# Local databases and snapshots
+*.db
+*.db-journal
+*.db-wal
+*.sqlite
+*.sqlite3
+data/snapshots/*
+!data/snapshots/.gitkeep
+data/exports/*
+!data/exports/.gitkeep
+data/traces/*
+
+# Generated reports and caches
+data/quality_report.json
+.pytest_cache/
+.coverage
+htmlcov/
+__pycache__/
+*.py[cod]
+.venv/
+.DS_Store
+*.log
+
+# Local backups (may contain secrets)
+backups/
+
+# Editor and local tooling
+.idea/
+.workbuddy/
+.ruff_cache/
+
+# Build artifacts
+build/
+dist/
+*.egg-info/
