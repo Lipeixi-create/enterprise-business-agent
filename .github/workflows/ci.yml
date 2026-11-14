@@ -26,9 +26,10 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.lock
+          pip install "opentelemetry-sdk>=1.25,<2.0" "opentelemetry-exporter-otlp-proto-http>=1.25,<2.0"
 
       - name: Run offline test suite
-        run: pytest -q --ignore=tests/test_phase5_agent_integration.py --ignore=tests/test_phase7_1_preflight.py --ignore=tests/test_phase8_observability.py
+        run: pytest -q
 
       - name: Import application
         run: PYTHONPATH=src python -c "from enterprise_business_agent.api.app import app; print(app.title)"

@@ -29,7 +29,7 @@ from enterprise_business_agent.llm import GLMClient, LLMCancelled, LLMTimeout
 from enterprise_business_agent.llm.transport import active_request_threads
 from enterprise_business_agent.security import AuthorizationPolicy, Principal
 from tests.agent_fakes import ScriptedLLM, finish_response
-from tests.test_phase9_2_1_reliability import _ok_body, _Provider
+from tests.test_llm_reliability import _ok_body, _Provider
 
 ANALYST = Principal("key:test", "analyst", frozenset({"metrics:read", "agent:run"}))
 AUTH = {"X-API-Key": "agent-key"}

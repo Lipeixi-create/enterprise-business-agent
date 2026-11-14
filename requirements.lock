@@ -113,6 +113,8 @@ pygments==2.21.0
     # via pytest
 pytest==8.4.2
     # via -r requirements.txt
+python-dotenv==1.2.4
+    # via -r requirements.txt
 pyyaml==6.0.3
     # via langchain-core
 requests==2.34.2

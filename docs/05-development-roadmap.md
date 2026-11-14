@@ -920,7 +920,7 @@ Phase 4（Agent Runtime + Tools）
 
 ### P9.1-03 评测器最小修复与回归测试 ✅ 已完成
 
-- 文件：`src/enterprise_business_agent/agent/relations.py`、`tests/test_phase7_6_evaluator.py`；
+- 文件：`src/enterprise_business_agent/agent/relations.py`、`tests/test_evaluator_grounding.py`；
 - 内容：
   - 修复 10 类解析/归属错误：变化字段提示、括号遮蔽、比较短语、排名区间、排名对照、排名列示主语、排序线索门禁、指标边距距离、子集作用域、全负贡献方向；
   - 新增 8 个负向回归测试和 3 个正向对照，评测器测试文件 **89 passed**；正向对照确认守卫没有屏蔽真实错误；
@@ -960,7 +960,7 @@ Phase 4（Agent Runtime + Tools）
 
 ### P9.2-01 真实 PG 权限与功能验收 ✅ 已完成
 
-- 文件：`tests/test_phase9_2_postgres_acceptance.py`、`docs/archive/phase9/PHASE9_2_REPORT.md`；
+- 文件：`tests/test_postgres_acceptance.py`、`docs/archive/phase9/PHASE9_2_REPORT.md`；
 - 环境：PostgreSQL 17.11（`mark-postgres`，`pgvector/pgvector:pg17`），验收库 `eba_phase9_2_test`；
 - 内容：
   - `eba_runtime` 仅能对 `agent_*` 表 DML，不能读业务表、不能 DDL；
