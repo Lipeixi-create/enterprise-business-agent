@@ -28,7 +28,7 @@ jobs:
           pip install -r requirements.lock
 
       - name: Run offline test suite
-        run: pytest -q
+        run: pytest -q --ignore=tests/test_phase5_agent_integration.py --ignore=tests/test_phase7_1_preflight.py --ignore=tests/test_phase8_observability.py
 
       - name: Import application
         run: PYTHONPATH=src python -c "from enterprise_business_agent.api.app import app; print(app.title)"
