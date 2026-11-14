@@ -1,0 +1,113 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: enterprise-business-agent-postgres
+    environment:
+      POSTGRES_USER: eba
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-eba}
+      POSTGRES_DB: enterprise_business_agent
+    ports:
+      - "${EBA_POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - eba_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U eba -d enterprise_business_agent"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+
+  init:
+    build: .
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql+psycopg://eba:${POSTGRES_PASSWORD:-eba}@postgres:5432/enterprise_business_agent
+      ADMIN_DATABASE_URL: postgresql+psycopg://eba:${POSTGRES_PASSWORD:-eba}@postgres:5432/enterprise_business_agent
+      EBA_RUNTIME_SETUP_URL: postgresql+psycopg://eba:${POSTGRES_PASSWORD:-eba}@postgres:5432/enterprise_business_agent
+      RUN_STORE_URL: postgresql+psycopg://eba:${POSTGRES_PASSWORD:-eba}@postgres:5432/enterprise_business_agent
+      EBA_RUNTIME_PASSWORD: ${EBA_RUNTIME_PASSWORD:-eba-runtime-local}
+      EBA_READONLY_PASSWORD: ${EBA_READONLY_PASSWORD:-eba-readonly-local}
+      EBA_SEED_DATA: ${EBA_SEED_DATA:-false}
+      DATA_START: ${DATA_START:-2025-01-01}
+      DATA_MONTHS: ${DATA_MONTHS:-12}
+    command: >-
+      sh -c "alembic upgrade head
+      && python scripts/init_db.py
+      && python scripts/create_readonly_role.py
+      && python scripts/init_runtime_store.py
+      && python scripts/migrate_phase5.py
+      && if [ \"$${EBA_SEED_DATA}\" = \"true\" ]; then python scripts/generate_data.py --database-url \"$${DATABASE_URL}\" --reset; fi"
+    restart: "no"
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+
+  app:
+    build: .
+    container_name: enterprise-business-agent-app
+    depends_on:
+      postgres:
+        condition: service_healthy
+      init:
+        condition: service_completed_successfully
+    environment:
+      DATABASE_URL: postgresql+psycopg://eba_readonly:${EBA_READONLY_PASSWORD:-eba-readonly-local}@postgres:5432/enterprise_business_agent
+      READONLY_DATABASE_URL: postgresql+psycopg://eba_readonly:${EBA_READONLY_PASSWORD:-eba-readonly-local}@postgres:5432/enterprise_business_agent
+      RUN_STORE_URL: postgresql+psycopg://eba_runtime:${EBA_RUNTIME_PASSWORD:-eba-runtime-local}@postgres:5432/enterprise_business_agent
+      EBA_API_KEYS: ${EBA_API_KEYS:?Set EBA_API_KEYS to a JSON map such as analyst-key to analyst}
+      EBA_ALLOW_ANONYMOUS_API: "false"
+      EBA_MCP_ENABLED: ${EBA_MCP_ENABLED:-false}
+      EBA_MCP_REQUIRE_API_KEY: "true"
+      EBA_OTEL_ENABLED: ${EBA_OTEL_ENABLED:-false}
+      EBA_OTEL_EXPORTER: ${EBA_OTEL_EXPORTER:-none}
+      EBA_OTEL_EXPORTER_ENDPOINT: ${EBA_OTEL_EXPORTER_ENDPOINT:-}
+      EBA_OTEL_SERVICE_NAME: ${EBA_OTEL_SERVICE_NAME:-enterprise-business-agent}
+      EBA_OTEL_SAMPLE_RATIO: ${EBA_OTEL_SAMPLE_RATIO:-1.0}
+      EBA_LOG_LEVEL: ${EBA_LOG_LEVEL:-INFO}
+      LLM_PROVIDER: ${LLM_PROVIDER:-glm}
+      LLM_MODEL: ${LLM_MODEL:-}
+      LLM_BASE_URL: ${LLM_BASE_URL:-}
+      GLM_API_KEY: ${GLM_API_KEY:-}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      LLM_TIMEOUT_SECONDS: ${LLM_TIMEOUT_SECONDS:-120}
+      LLM_CONNECT_TIMEOUT_SECONDS: ${LLM_CONNECT_TIMEOUT_SECONDS:-10}
+      LLM_READ_TIMEOUT_SECONDS: ${LLM_READ_TIMEOUT_SECONDS:-60}
+      LLM_MAX_RETRIES: ${LLM_MAX_RETRIES:-1}
+      LLM_RETRY_BACKOFF_BASE_SECONDS: ${LLM_RETRY_BACKOFF_BASE_SECONDS:-0.5}
+      LLM_RETRY_BACKOFF_MAX_SECONDS: ${LLM_RETRY_BACKOFF_MAX_SECONDS:-8}
+      LLM_RETRY_AFTER_MAX_SECONDS: ${LLM_RETRY_AFTER_MAX_SECONDS:-30}
+      LLM_CIRCUIT_FAILURE_THRESHOLD: ${LLM_CIRCUIT_FAILURE_THRESHOLD:-3}
+      LLM_CIRCUIT_RESET_SECONDS: ${LLM_CIRCUIT_RESET_SECONDS:-30}
+      LLM_MAX_TOKENS: ${LLM_MAX_TOKENS:-4000}
+      LLM_TEMPERATURE: ${LLM_TEMPERATURE:-0}
+      LLM_SEED: ${LLM_SEED:-}
+      AGENT_MAX_TOOL_CALLS: ${AGENT_MAX_TOOL_CALLS:-6}
+      AGENT_MAX_SECONDS: ${AGENT_MAX_SECONDS:-300}
+      AGENT_MAX_TOTAL_TOKENS: ${AGENT_MAX_TOTAL_TOKENS:-120000}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    ports:
+      - "8000:8000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=5)"]
+      interval: 15s
+      timeout: 5s
+      start_period: 20s
+      retries: 5
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+
+volumes:
+  eba_postgres_data:

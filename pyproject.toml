@@ -1,0 +1,46 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "enterprise-business-agent"
+version = "0.6.0"
+description = "Semantic-first business analysis agent with controlled SQL, read-only execution and FastAPI"
+requires-python = ">=3.11"
+
+dependencies = [
+    "SQLAlchemy>=2.0,<3.0",
+    "psycopg[binary]>=3.2,<4.0",
+    "pydantic>=2.7,<3.0",
+    "alembic>=1.13,<2.0",
+    "sqlglot>=27.0,<28.0",
+    "fastapi>=0.115,<1.0",
+    "uvicorn>=0.30,<1.0",
+    "httpx>=0.27,<1.0",
+    "langgraph>=1.2,<2.0",
+]
+
+[project.optional-dependencies]
+# Tracing is optional: without these packages the application runs unchanged
+# and /api/v1/metrics reports that no span was exported.
+otel = [
+    "opentelemetry-sdk>=1.25,<2.0",
+    "opentelemetry-exporter-otlp-proto-http>=1.25,<2.0",
+]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
+# Real-model evaluation is opt-in only. Ordinary `pytest` / CI never calls a
+# provider; live runs go through scripts/run_phase7_evals.py.
+addopts = "-m 'not live_model'"
+markers = [
+    "unit: deterministic tests with no external service",
+    "integration: uses a local SQLite database or the API app",
+    "postgres: requires EBA_TEST_POSTGRES_URL and a disposable PostgreSQL database",
+    "live_model: calls a real external model provider; excluded by default",
+]
+
+[tool.setuptools.package-data]
+enterprise_business_agent = ["web/*"]
+

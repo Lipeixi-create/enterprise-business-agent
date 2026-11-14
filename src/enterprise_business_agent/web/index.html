@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>经营分析工作台</title>
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-mark">EBA</span>
+      <div>
+        <h1>经营分析工作台</h1>
+        <p class="muted">提问 → Agent 调查 → Evidence → 报告 → 人工审批</p>
+      </div>
+    </div>
+    <div class="auth">
+      <a class="button button-quiet" href="./viz.html">数据看板</a>
+      <label for="api-key">API Key</label>
+      <input id="api-key" type="password" autocomplete="off" placeholder="X-API-Key（仅保存在本标签页）">
+      <button id="connect" class="button">连接</button>
+      <span id="role-badge" class="badge badge-muted">未连接</span>
+    </div>
+  </header>
+
+  <div id="global-error" class="banner banner-error hidden" role="alert"></div>
+
+  <main class="layout">
+    <aside class="sidebar">
+      <div class="sidebar-head">
+        <h2>历史运行</h2>
+        <button id="refresh-history" class="button button-quiet" title="刷新">刷新</button>
+      </div>
+      <ul id="history-list" class="history-list"></ul>
+      <p id="history-empty" class="muted small hidden">暂无运行记录</p>
+      <div class="sidebar-foot muted small">
+        <span id="run-scope"></span>
+      </div>
+    </aside>
+
+    <section class="main">
+      <section class="card ask-card">
+        <div class="card-head">
+          <div>
+            <h2>发起分析</h2>
+            <p class="muted small">问题会交给现有单 Agent 受控循环；数字和结论只来自工具 Evidence。</p>
+          </div>
+          <label class="toggle">
+            <input id="async-mode" type="checkbox" checked>
+            <span>异步 + 进度</span>
+          </label>
+        </div>
+        <form id="ask-form">
+          <label class="field-label" for="question">业务问题</label>
+          <textarea id="question" rows="3" maxlength="2000" required>分析2025年12月华东销售下降原因</textarea>
+          <div class="ask-actions">
+            <label class="inline-field">
+              <span>最多工具调用</span>
+              <input id="max-tool-calls" type="number" min="1" max="20" value="6">
+            </label>
+            <button id="submit-run" class="button button-primary" type="submit">开始分析</button>
+            <button id="cancel-run" class="button button-danger hidden" type="button">取消运行</button>
+            <span id="submit-status" class="muted small"></span>
+          </div>
+        </form>
+      </section>
+
+      <section class="card hidden" id="run-card">
+        <div class="card-head">
+          <div>
+            <h2 id="run-title">运行</h2>
+            <p id="run-meta" class="muted small"></p>
+          </div>
+          <div class="run-status">
+            <span id="run-status" class="badge badge-muted">-</span>
+            <span id="validation-status" class="badge badge-muted hidden">-</span>
+          </div>
+        </div>
+        <div id="run-answer" class="answer hidden"></div>
+        <div id="run-errors" class="errors hidden"></div>
+
+        <div class="grid-two">
+          <div>
+            <h3>执行过程</h3>
+            <ol id="timeline" class="timeline"></ol>
+          </div>
+          <div>
+            <h3>工具调用</h3>
+            <div id="tool-calls" class="stack"></div>
+          </div>
+        </div>
+
+        <div class="tabs" role="tablist">
+          <button class="tab active" data-tab="report" role="tab">报告</button>
+          <button class="tab" data-tab="evidence" role="tab">Evidence</button>
+          <button class="tab" data-tab="findings" role="tab">Findings</button>
+          <button class="tab" data-tab="trace" role="tab">运行详情</button>
+        </div>
+        <div id="tab-report" class="tab-panel"></div>
+        <div id="tab-evidence" class="tab-panel hidden"></div>
+        <div id="tab-findings" class="tab-panel hidden"></div>
+        <div id="tab-trace" class="tab-panel hidden"></div>
+
+        <section id="approval-panel" class="approval hidden">
+          <div class="card-head">
+            <div>
+              <h3>报告审批</h3>
+              <p id="approval-meta" class="muted small"></p>
+            </div>
+            <span id="approval-state" class="badge badge-muted">-</span>
+          </div>
+          <div class="ask-actions">
+            <input id="approval-comment" type="text" maxlength="2000" placeholder="审批意见（可选）">
+            <button id="approve" class="button button-primary" type="button">通过</button>
+            <button id="reject" class="button button-danger" type="button">驳回</button>
+          </div>
+        </section>
+      </section>
+    </section>
+  </main>
+
+  <script src="./app.js" defer></script>
+</body>
+</html>

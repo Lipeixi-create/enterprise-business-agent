@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>经营数据看板</title>
+  <link rel="stylesheet" href="./styles.css">
+  <link rel="stylesheet" href="./viz.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-mark">EBA</span>
+      <div>
+        <h1>经营数据看板</h1>
+        <p class="muted small">语义层指标 → 只读查询 → 趋势与结构</p>
+      </div>
+    </div>
+    <div class="auth">
+      <a class="button button-quiet" href="./">← 回到工作台</a>
+      <label for="api-key">API Key</label>
+      <input id="api-key" type="password" autocomplete="off" placeholder="X-API-Key（仅本标签页）">
+      <button id="connect" class="button">连接</button>
+      <span id="role-badge" class="badge badge-muted">未连接</span>
+    </div>
+  </header>
+
+  <div id="global-error" class="banner banner-error hidden" role="alert"></div>
+
+  <main class="viz-layout">
+    <div class="tabs viz-tabs" role="tablist">
+      <button class="tab active" data-panel="business" role="tab">业务趋势</button>
+      <button class="tab" data-panel="quality" role="tab">运行质量</button>
+    </div>
+
+    <section id="panel-business" class="viz-panel">
+      <section class="card">
+        <form id="filters" class="filters">
+          <label class="filter"><span>指标</span><select id="metric"></select></label>
+          <label class="filter"><span>拆分维度</span><select id="dimension"><option value="">不拆分</option></select></label>
+          <label class="filter"><span>粒度</span>
+            <select id="grain">
+              <option value="month" selected>月</option>
+              <option value="quarter">季</option>
+              <option value="year">年</option>
+              <option value="total">整段合计</option>
+            </select>
+          </label>
+          <label class="filter"><span>起始</span><input id="start" type="month"></label>
+          <label class="filter"><span>结束</span><input id="end" type="month"></label>
+          <button id="apply" class="button button-primary" type="submit">更新</button>
+          <button id="reset" class="button" type="button">全部区间</button>
+          <span id="load-status" class="muted small"></span>
+        </form>
+      </section>
+
+      <section class="kpi-row" id="kpis"></section>
+
+      <section class="card chart-card">
+        <div class="chart-head">
+          <div>
+            <h2 id="chart-title">趋势</h2>
+            <p id="chart-subtitle" class="muted small"></p>
+          </div>
+          <div id="legend" class="legend"></div>
+        </div>
+        <div id="chart" class="chart-host"></div>
+        <div id="chart-tip" class="chart-tip hidden"></div>
+      </section>
+
+      <section class="card">
+        <div class="card-head">
+          <div>
+            <h2>数据明细</h2>
+            <p id="table-meta" class="muted small"></p>
+          </div>
+          <button id="export" class="button button-quiet" type="button">导出 CSV</button>
+        </div>
+        <div class="table-wrap">
+          <table id="table" class="data">
+            <thead></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </section>
+    </section>
+
+    <section id="panel-quality" class="viz-panel hidden">
+      <section class="card">
+        <div class="card-head">
+          <div>
+            <h2>运行质量</h2>
+            <p class="muted small">来自 /api/v1/metrics 与 /api/v1/alerts，需要 admin scope。</p>
+          </div>
+          <button id="refresh-quality" class="button button-quiet" type="button">刷新</button>
+        </div>
+        <div id="quality-hint" class="empty hidden"></div>
+        <div id="quality-kpis" class="kpi-row"></div>
+      </section>
+
+      <section class="card">
+        <h2>运行状态分布</h2>
+        <div id="status-bars" class="status-bars"></div>
+      </section>
+
+      <section class="card">
+        <h2>告警</h2>
+        <div id="alert-list" class="alert-list"></div>
+      </section>
+    </section>
+  </main>
+
+  <script src="./viz.js" defer></script>
+</body>
+</html>

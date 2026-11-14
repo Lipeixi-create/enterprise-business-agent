@@ -1,0 +1,16 @@
+.git
+.gitignore
+.venv
+__pycache__
+*.pyc
+.pytest_cache
+.idea
+.env
+.env.*
+!.env.example
+*.db
+backups
+data/exports
+data/traces
+docs
+tests

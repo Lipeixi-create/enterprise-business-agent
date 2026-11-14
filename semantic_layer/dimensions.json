@@ -1,0 +1,134 @@
+{
+  "version": "2.0.0",
+  "dimensions": [
+    {
+      "name": "period",
+      "label": "时间",
+      "kind": "time",
+      "synonyms": [
+        "时间",
+        "月份",
+        "日期",
+        "period",
+        "month"
+      ],
+      "time_grains": [
+        "month",
+        "quarter",
+        "year",
+        "total"
+      ]
+    },
+    {
+      "name": "region",
+      "label": "区域",
+      "kind": "categorical",
+      "table": "regions",
+      "fact_column": "region_id",
+      "key_column": "id",
+      "code_column": "code",
+      "name_column": "name",
+      "synonyms": [
+        "区域",
+        "地区",
+        "大区",
+        "region"
+      ],
+      "values": [
+        {
+          "code": "EC",
+          "label": "华东"
+        },
+        {
+          "code": "NC",
+          "label": "华北"
+        },
+        {
+          "code": "SC",
+          "label": "华南"
+        },
+        {
+          "code": "WC",
+          "label": "西部"
+        }
+      ]
+    },
+    {
+      "name": "channel",
+      "label": "渠道",
+      "kind": "categorical",
+      "table": "channels",
+      "fact_column": "channel_id",
+      "key_column": "id",
+      "code_column": "code",
+      "name_column": "name",
+      "synonyms": [
+        "渠道",
+        "销售渠道",
+        "channel"
+      ]
+    },
+    {
+      "name": "product",
+      "label": "商品",
+      "kind": "categorical",
+      "table": "products",
+      "fact_column": "product_id",
+      "key_column": "id",
+      "code_column": "code",
+      "name_column": "name",
+      "synonyms": [
+        "商品",
+        "产品",
+        "SKU",
+        "product"
+      ]
+    },
+    {
+      "name": "campaign",
+      "label": "营销活动",
+      "kind": "categorical",
+      "table": "campaigns",
+      "fact_column": "campaign_id",
+      "key_column": "id",
+      "code_column": "code",
+      "name_column": "name",
+      "synonyms": [
+        "活动",
+        "营销活动",
+        "广告活动",
+        "campaign"
+      ]
+    },
+    {
+      "name": "department",
+      "label": "部门",
+      "kind": "categorical",
+      "table": "departments",
+      "fact_column": "department_id",
+      "key_column": "id",
+      "code_column": "code",
+      "name_column": "name",
+      "synonyms": [
+        "部门",
+        "组织",
+        "department"
+      ]
+    },
+    {
+      "name": "supplier",
+      "label": "供应商",
+      "kind": "categorical",
+      "table": "suppliers",
+      "fact_column": "supplier_id",
+      "key_column": "id",
+      "code_column": "code",
+      "name_column": "name",
+      "synonyms": [
+        "供应商",
+        "厂商",
+        "supplier"
+      ]
+    }
+  ]
+}

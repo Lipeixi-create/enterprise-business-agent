@@ -1,0 +1,626 @@
+{
+  "version": "2.0.0",
+  "grain_note": "All fact tables use period as the first day of the business month. Inventory snapshots are at region-product-month grain.",
+  "metrics": [
+    {
+      "name": "revenue",
+      "label": "营收",
+      "unit": "CNY",
+      "domain": "Finance",
+      "description": "财务月度确认收入",
+      "dimensions": [
+        "region"
+      ],
+      "time_grains": [
+        "month",
+        "quarter",
+        "year",
+        "total"
+      ],
+      "metric_type": "additive"
+    },
+    {
+      "name": "sales_amount",
+      "label": "销售额",
+      "unit": "CNY",
+      "domain": "Sales",
+      "description": "销售事实的成交金额",
+      "dimensions": [
+        "region",
+        "channel",
+        "product"
+      ],
+      "time_grains": [
+        "month",
+        "quarter",
+        "year",
+        "total"
+      ],
+      "metric_type": "additive"
+    },
+    {
+      "name": "sales_volume",
+      "label": "销量",
+      "unit": "units",
+      "domain": "Sales",
+      "description": "销售事实的销售件数",
+      "dimensions": [
+        "region",
+        "channel",
+        "product"
+      ],
+      "time_grains": [
+        "month",
+        "quarter",
+        "year",
+        "total"
+      ],
+      "metric_type": "additive"
+    },
+    {
+      "name": "gross_profit",
+      "label": "毛利",
+      "unit": "CNY",
+      "domain": "Finance",
+      "description": "销售额减销售成本",
+      "dimensions": [
+        "region",
+        "channel",
+        "product"
+      ],
+      "time_grains": [
+        "month",
+        "quarter",
+        "year",
+        "total"
+      ],
+      "metric_type": "additive"
+    },
+    {
+      "name": "gross_margin",
+      "label": "毛利率",
+      "unit": "ratio",
+      "domain": "Finance",
+      "description": "毛利除以销售额；跨维度按分子分母加权计算，不做比率简单平均",
+      "dimensions": [
+        "region",
+        "channel",
+        "product"
+      ],
+      "time_grains": [
+        "month",
+        "quarter",
+        "year",
+        "total"
+      ],
+      "metric_type": "ratio"
+    },
+    {
+      "name": "net_profit",
+      "label": "净利润",
+      "unit": "CNY",
+      "domain": "Finance",
+      "description": "财务收入减去实际总费用；实际总费用包含销售成本与运营费用",
+      "dimensions": [
+        "region"
+      ],
+      "time_grains": [
+        "month",
+        "quarter",
+        "year",
+        "total"
+      ],
+      "metric_type": "additive"
+    },
+    {
+      "name": "net_margin",
+      "label": "净利率",
+      "unit": "ratio",
+      "domain": "Finance",
+      "description": "净利润除以营收；跨维度按分子分母加权计算",
+      "dimensions": [
+        "region"
+      ],
+      "time_grains": [
+        "month",
+        "quarter",
+        "year",
+        "total"
+      ],
+      "metric_type": "ratio"
+    },
+    {
+      "name": "marketing_spend",
+      "label": "营销投入",
+      "unit": "CNY",
+      "domain": "Marketing",
+      "description": "营销活动实际投入",
+      "dimensions": [
+        "campaign",
+        "region",
+        "channel"
+      ],
+      "time_grains": [
+        "month",
+        "quarter",
+        "year",
+        "total"
+      ],
+      "metric_type": "additive"
+    },
+    {
+      "name": "campaign_revenue",
+      "label": "活动归因收入",
+      "unit": "CNY",
+      "domain": "Marketing",
+      "description": "营销活动归因收入",
+      "dimensions": [
+        "campaign",
+        "region",
+        "channel"
+      ],
+      "time_grains": [
+        "month",
+        "quarter",
+        "year",
+        "total"
+      ],
+      "metric_type": "additive"
+    },
+    {
+      "name": "ROI",
+      "label": "营销 ROI",
+      "unit": "ratio",
+      "domain": "Marketing",
+      "description": "活动归因收入除以营销投入；跨维度按分子分母加权计算",
+      "dimensions": [
+        "campaign",
+        "region",
+        "channel"
+      ],
+      "time_grains": [
+        "month",
+        "quarter",
+        "year",
+        "total"
+      ],
+      "metric_type": "ratio"
+    },
+    {
+      "name": "CAC",
+      "label": "获客成本",
+      "unit": "CNY",
+      "domain": "Marketing",
+      "description": "营销投入除以转化数",
+      "dimensions": [
+        "campaign",
+        "region",
+        "channel"
+      ],
+      "time_grains": [
+        "month",
+        "quarter",
+        "year",
+        "total"
+      ],
+      "metric_type": "ratio"
+    },
+    {
+      "name": "conversion_rate",
+      "label": "转化率",
+      "unit": "ratio",
+      "domain": "Marketing",
+      "description": "转化数除以点击数",
+      "dimensions": [
+        "campaign",
+        "region",
+        "channel"
+      ],
+      "time_grains": [
+        "month",
+        "quarter",
+        "year",
+        "total"
+      ],
+      "metric_type": "ratio"
+    },
+    {
+      "name": "impressions",
+      "label": "曝光量",
+      "unit": "count",
+      "domain": "Marketing",
+      "description": "营销活动曝光次数",
+      "dimensions": [
+        "campaign",
+        "region",
+        "channel"
+      ],
+      "time_grains": [
+        "month",
+        "quarter",
+        "year",
+        "total"
+      ],
+      "metric_type": "additive"
+    },
+    {
+      "name": "clicks",
+      "label": "点击量",
+      "unit": "count",
+      "domain": "Marketing",
+      "description": "营销活动点击次数",
+      "dimensions": [
+        "campaign",
+        "region",
+        "channel"
+      ],
+      "time_grains": [
+        "month",
+        "quarter",
+        "year",
+        "total"
+      ],
+      "metric_type": "additive"
+    },
+    {
+      "name": "conversions",
+      "label": "转化数",
+      "unit": "count",
+      "domain": "Marketing",
+      "description": "营销活动转化次数",
+      "dimensions": [
+        "campaign",
+        "region",
+        "channel"
+      ],
+      "time_grains": [
+        "month",
+        "quarter",
+        "year",
+        "total"
+      ],
+      "metric_type": "additive"
+    },
+    {
+      "name": "CTR",
+      "label": "点击率",
+      "unit": "ratio",
+      "domain": "Marketing",
+      "description": "点击数除以曝光量",
+      "dimensions": [
+        "campaign",
+        "region",
+        "channel"
+      ],
+      "time_grains": [
+        "month",
+        "quarter",
+        "year",
+        "total"
+      ],
+      "metric_type": "ratio"
+    },
+    {
+      "name": "inventory",
+      "label": "期末库存量",
+      "unit": "units",
+      "domain": "Supply Chain",
+      "description": "库存快照中的期末库存量；跨时间不可直接相加，应取期末值",
+      "dimensions": [
+        "region",
+        "product",
+        "supplier"
+      ],
+      "time_grains": [
+        "month",
+        "quarter",
+        "year",
+        "total"
+      ],
+      "metric_type": "semi_additive"
+    },
+    {
+      "name": "demand_units",
+      "label": "需求量",
+      "unit": "units",
+      "domain": "Supply Chain",
+      "description": "未受缺货约束的原始需求件数，等于已售件数加缺货件数",
+      "dimensions": [
+        "region",
+        "product"
+      ],
+      "time_grains": [
+        "month",
+        "quarter",
+        "year",
+        "total"
+      ],
+      "metric_type": "additive"
+    },
+    {
+      "name": "stockout_units",
+      "label": "缺货件数",
+      "unit": "units",
+      "domain": "Supply Chain",
+      "description": "因库存不足未能满足的需求件数",
+      "dimensions": [
+        "region",
+        "product"
+      ],
+      "time_grains": [
+        "month",
+        "quarter",
+        "year",
+        "total"
+      ],
+      "metric_type": "additive"
+    },
+    {
+      "name": "inventory_days",
+      "label": "库存天数",
+      "unit": "days",
+      "domain": "Supply Chain",
+      "description": "库存可覆盖的销售天数，按销量加权平均，避免小销量商品拉偏均值",
+      "dimensions": [
+        "region",
+        "product",
+        "supplier"
+      ],
+      "time_grains": [
+        "month",
+        "quarter",
+        "year",
+        "total"
+      ],
+      "metric_type": "ratio"
+    },
+    {
+      "name": "inventory_turnover",
+      "label": "库存周转率",
+      "unit": "turns",
+      "domain": "Supply Chain",
+      "description": "期间销量除以期间平均库存量；分母按月份平均，避免把库存余额直接相加",
+      "dimensions": [
+        "region",
+        "product",
+        "supplier"
+      ],
+      "time_grains": [
+        "month",
+        "quarter",
+        "year",
+        "total"
+      ],
+      "metric_type": "ratio"
+    },
+    {
+      "name": "stockout_rate",
+      "label": "缺货率",
+      "unit": "ratio",
+      "domain": "Supply Chain",
+      "description": "缺货件数除以需求量；跨维度按分子分母加权计算",
+      "dimensions": [
+        "region",
+        "product"
+      ],
+      "time_grains": [
+        "month",
+        "quarter",
+        "year",
+        "total"
+      ],
+      "metric_type": "ratio"
+    },
+    {
+      "name": "fulfillment_rate",
+      "label": "需求满足率",
+      "unit": "ratio",
+      "domain": "Supply Chain",
+      "description": "已售件数除以需求量，反映可售库存对需求的满足程度",
+      "dimensions": [
+        "region",
+        "product"
+      ],
+      "time_grains": [
+        "month",
+        "quarter",
+        "year",
+        "total"
+      ],
+      "metric_type": "ratio"
+    },
+    {
+      "name": "purchase_amount",
+      "label": "采购金额",
+      "unit": "CNY",
+      "domain": "Supply Chain",
+      "description": "采购事实的采购金额",
+      "dimensions": [
+        "supplier",
+        "product",
+        "region"
+      ],
+      "time_grains": [
+        "month",
+        "quarter",
+        "year",
+        "total"
+      ],
+      "metric_type": "additive"
+    },
+    {
+      "name": "unit_purchase_cost",
+      "label": "单位采购成本",
+      "unit": "CNY",
+      "domain": "Supply Chain",
+      "description": "采购金额除以采购数量",
+      "dimensions": [
+        "supplier",
+        "product",
+        "region"
+      ],
+      "time_grains": [
+        "month",
+        "quarter",
+        "year",
+        "total"
+      ],
+      "metric_type": "ratio"
+    },
+    {
+      "name": "headcount",
+      "label": "期末人数",
+      "unit": "people",
+      "domain": "HR",
+      "description": "部门月末员工人数；跨时间不可直接相加，应取期末值",
+      "dimensions": [
+        "department"
+      ],
+      "time_grains": [
+        "month",
+        "quarter",
+        "year",
+        "total"
+      ],
+      "metric_type": "semi_additive"
+    },
+    {
+      "name": "turnover_rate",
+      "label": "离职率",
+      "unit": "ratio",
+      "domain": "HR",
+      "description": "离职人数除以期末人数",
+      "dimensions": [
+        "department"
+      ],
+      "time_grains": [
+        "month",
+        "quarter",
+        "year",
+        "total"
+      ],
+      "metric_type": "ratio"
+    },
+    {
+      "name": "labor_cost",
+      "label": "人力成本",
+      "unit": "CNY",
+      "domain": "HR",
+      "description": "部门当月人力成本",
+      "dimensions": [
+        "department"
+      ],
+      "time_grains": [
+        "month",
+        "quarter",
+        "year",
+        "total"
+      ],
+      "metric_type": "additive"
+    },
+    {
+      "name": "budget",
+      "label": "预算金额",
+      "unit": "CNY",
+      "domain": "Finance",
+      "description": "财务月度预算费用",
+      "dimensions": [
+        "region"
+      ],
+      "time_grains": [
+        "month",
+        "quarter",
+        "year",
+        "total"
+      ],
+      "metric_type": "additive"
+    },
+    {
+      "name": "actual",
+      "label": "实际费用",
+      "unit": "CNY",
+      "domain": "Finance",
+      "description": "财务月度实际费用",
+      "dimensions": [
+        "region"
+      ],
+      "time_grains": [
+        "month",
+        "quarter",
+        "year",
+        "total"
+      ],
+      "metric_type": "additive"
+    },
+    {
+      "name": "budget_vs_actual",
+      "label": "预算偏差",
+      "unit": "CNY",
+      "domain": "Finance",
+      "description": "实际费用减预算费用，正数表示超预算",
+      "dimensions": [
+        "region"
+      ],
+      "time_grains": [
+        "month",
+        "quarter",
+        "year",
+        "total"
+      ],
+      "metric_type": "additive"
+    },
+    {
+      "name": "budget_variance_rate",
+      "label": "预算偏差率",
+      "unit": "ratio",
+      "domain": "Finance",
+      "description": "预算偏差除以预算金额，正数表示超预算",
+      "dimensions": [
+        "region"
+      ],
+      "time_grains": [
+        "month",
+        "quarter",
+        "year",
+        "total"
+      ],
+      "metric_type": "ratio"
+    },
+    {
+      "name": "sales_unit_price",
+      "label": "平均销售单价",
+      "unit": "CNY",
+      "domain": "Sales",
+      "description": "销售额除以销量",
+      "dimensions": [
+        "region",
+        "channel",
+        "product"
+      ],
+      "time_grains": [
+        "month",
+        "quarter",
+        "year",
+        "total"
+      ],
+      "metric_type": "ratio"
+    },
+    {
+      "name": "labor_cost_per_head",
+      "label": "人均人力成本",
+      "unit": "CNY",
+      "domain": "HR",
+      "description": "人力成本除以期末人数",
+      "dimensions": [
+        "department"
+      ],
+      "time_grains": [
+        "month",
+        "quarter",
+        "year",
+        "total"
+      ],
+      "metric_type": "ratio"
+    }
+  ]
+}
