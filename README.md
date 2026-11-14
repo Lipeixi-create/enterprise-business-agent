@@ -305,3 +305,7 @@ docs/                 # 开发文档 + 设计文档；阶段性报告归档在 d
 - [评测与可观测性](docs/06-evaluation-and-observability.md)
 - [部署与只读检查](docs/PRODUCTION_DEPLOYMENT.md)
 - [阶段性验收报告归档](docs/archive/)
+
+---
+
+MIT License © 2026 Enterprise Business Agent contributors
