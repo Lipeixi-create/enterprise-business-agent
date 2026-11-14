@@ -3,9 +3,9 @@ from datetime import date
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
 
+from enterprise_business_agent import models  # noqa: F401
 from enterprise_business_agent.data_generator import generate_data
 from enterprise_business_agent.db import Base
-from enterprise_business_agent import models  # noqa: F401
 from enterprise_business_agent.quality import run_quality_checks
 
 
@@ -30,5 +30,10 @@ def test_generated_dataset_passes_quality_checks():
     assert all(item.passed for item in report.event_assertions), [
         item.name for item in report.event_assertions if not item.passed
     ]
-    assert {"overstock_risk_products", "marketing_roi_decline_q4", "budget_overrun_q4", "net_profit_decline_q4",
-            "marketing_labor_cost_growth_q4"} <= {item.name for item in report.event_assertions}
+    assert {
+        "overstock_risk_products",
+        "marketing_roi_decline_q4",
+        "budget_overrun_q4",
+        "net_profit_decline_q4",
+        "marketing_labor_cost_growth_q4",
+    } <= {item.name for item in report.event_assertions}

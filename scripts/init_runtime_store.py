@@ -31,11 +31,7 @@ from enterprise_business_agent.api.runtime_schema import (  # noqa: E402
 
 
 def _setup_url() -> str:
-    url = (
-        os.getenv("EBA_RUNTIME_SETUP_URL")
-        or os.getenv("DATABASE_URL")
-        or os.getenv("RUN_STORE_URL")
-    )
+    url = os.getenv("EBA_RUNTIME_SETUP_URL") or os.getenv("DATABASE_URL") or os.getenv("RUN_STORE_URL")
     if not url:
         return "sqlite:///./enterprise_business_agent_runs.db"
     return url
@@ -60,8 +56,7 @@ def main() -> int:
         password = os.getenv("EBA_RUNTIME_PASSWORD")
         if not password:
             print(
-                "EBA_RUNTIME_PASSWORD is required to grant the PostgreSQL "
-                "runtime role",
+                "EBA_RUNTIME_PASSWORD is required to grant the PostgreSQL runtime role",
                 file=sys.stderr,
             )
             return 2

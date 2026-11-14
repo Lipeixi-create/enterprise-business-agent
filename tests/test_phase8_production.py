@@ -157,9 +157,7 @@ def _assert_chain(client: TestClient, run: dict, *, expected_calls: int) -> dict
     assert run["report_id"], run
     assert run["report_validation_passed"] is True, run
 
-    evidence_response = client.get(
-        f"/api/v1/agent/runs/{run_id}/evidence", headers=AUTH_A
-    )
+    evidence_response = client.get(f"/api/v1/agent/runs/{run_id}/evidence", headers=AUTH_A)
     assert evidence_response.status_code == 200
     evidence = evidence_response.json()["evidence"]
     assert len(evidence) == expected_calls
@@ -173,9 +171,7 @@ def _assert_chain(client: TestClient, run: dict, *, expected_calls: int) -> dict
         assert item["metric_definition_version"]
         assert item["result"]
 
-    findings_response = client.get(
-        f"/api/v1/agent/runs/{run_id}/findings", headers=AUTH_A
-    )
+    findings_response = client.get(f"/api/v1/agent/runs/{run_id}/findings", headers=AUTH_A)
     assert findings_response.status_code == 200
     findings = findings_response.json()["findings"]
     assert findings
@@ -184,23 +180,15 @@ def _assert_chain(client: TestClient, run: dict, *, expected_calls: int) -> dict
         assert finding["evidence_ids"]
         assert set(finding["evidence_ids"]) <= evidence_ids
 
-    report_response = client.get(
-        f"/api/v1/agent/runs/{run_id}/report", headers=AUTH_A
-    )
+    report_response = client.get(f"/api/v1/agent/runs/{run_id}/report", headers=AUTH_A)
     assert report_response.status_code == 200
     stored = report_response.json()
     assert stored["validation"]["passed"] is True
     assert stored["validation"]["issues"] == []
     document = stored["report"]
     assert document["report_info"]["run_id"] == run_id
-    assert {
-        item["evidence_id"] for item in document["evidence_references"]
-    } == evidence_ids
-    assert {
-        finding_id
-        for item in document["conclusions"]
-        for finding_id in item["finding_ids"]
-    } <= finding_ids
+    assert {item["evidence_id"] for item in document["evidence_references"]} == evidence_ids
+    assert {finding_id for item in document["conclusions"] for finding_id in item["finding_ids"]} <= finding_ids
 
     for card in document["key_metrics"]:
         assert card["value"]["evidence_id"] in evidence_ids
@@ -315,13 +303,9 @@ SCENARIOS = [
     SCENARIOS,
     ids=[item[0] for item in SCENARIOS],
 )
-def test_business_scenarios_complete_the_full_chain(
-    env, case_id, question, responses, value_path, value_range
-):
+def test_business_scenarios_complete_the_full_chain(env, case_id, question, responses, value_path, value_range):
     with _client(env, ScriptedLLM(responses)) as client:
-        response = client.post(
-            "/api/v1/agent/runs", headers=AUTH_A, json={"question": question}
-        )
+        response = client.post("/api/v1/agent/runs", headers=AUTH_A, json={"question": question})
         assert response.status_code == 200, response.text
         run = response.json()
         chain = _assert_chain(client, run, expected_calls=1)
@@ -424,16 +408,9 @@ def test_concurrent_async_runs_are_unique_and_owner_isolated(env):
         histories = {}
         while time.monotonic() < deadline:
             histories = {
-                key: client.get(
-                    "/api/v1/agent/runs?limit=50", headers={"X-API-Key": key}
-                ).json()
-                for key in submitted
+                key: client.get("/api/v1/agent/runs?limit=50", headers={"X-API-Key": key}).json() for key in submitted
             }
-            statuses = [
-                item["status"]
-                for payload in histories.values()
-                for item in payload["items"]
-            ]
+            statuses = [item["status"] for payload in histories.values() for item in payload["items"]]
             if len(statuses) == 8 and all(status in TERMINAL for status in statuses):
                 break
             time.sleep(0.05)
@@ -458,9 +435,7 @@ def test_concurrent_async_runs_are_unique_and_owner_isolated(env):
                 ).json()
                 assert evidence["count"] == 1
 
-        cross_owner = client.get(
-            f"/api/v1/agent/runs/{submitted['agent-a'][0]}", headers=AUTH_B
-        )
+        cross_owner = client.get(f"/api/v1/agent/runs/{submitted['agent-a'][0]}", headers=AUTH_B)
         assert cross_owner.status_code == 404
 
 
@@ -483,12 +458,8 @@ def test_concurrent_duplicate_idempotency_creates_one_run(env):
         assert {status for status, _ in results} == {202}
         assert len({run_id for _, run_id in results}) == 1
 
-        history = client.get(
-            "/api/v1/agent/runs?limit=50", headers=AUTH_A
-        ).json()
-        matching = [
-            item for item in history["items"] if item["question"] == "并发幂等测试"
-        ]
+        history = client.get("/api/v1/agent/runs?limit=50", headers=AUTH_A).json()
+        matching = [item for item in history["items"] if item["question"] == "并发幂等测试"]
         assert len(matching) == 1
 
 
@@ -505,17 +476,11 @@ def test_timeout_is_terminal_and_does_not_fabricate_success(env):
         assert run["stop_reason"] == "time_budget_exhausted"
         assert run["tool_calls"] == []
 
-        stored = client.get(
-            f"/api/v1/agent/runs/{run['run_id']}", headers=AUTH_A
-        ).json()
+        stored = client.get(f"/api/v1/agent/runs/{run['run_id']}", headers=AUTH_A).json()
         assert stored["status"] == "timeout"
-        evidence = client.get(
-            f"/api/v1/agent/runs/{run['run_id']}/evidence", headers=AUTH_A
-        ).json()
+        evidence = client.get(f"/api/v1/agent/runs/{run['run_id']}/evidence", headers=AUTH_A).json()
         assert evidence["count"] == 0
-        report = client.get(
-            f"/api/v1/agent/runs/{run['run_id']}/report", headers=AUTH_A
-        )
+        report = client.get(f"/api/v1/agent/runs/{run['run_id']}/report", headers=AUTH_A)
         if report.status_code == 200:
             assert report.json()["report"]["conclusions"] == []
 
@@ -556,9 +521,7 @@ def test_business_database_outage_becomes_a_structured_tool_failure(env):
         settings=env["settings"],
     )
     with _client(env, llm, runtime=runtime) as client:
-        response = client.post(
-            "/api/v1/agent/runs", headers=AUTH_A, json={"question": "数据库故障测试"}
-        )
+        response = client.post("/api/v1/agent/runs", headers=AUTH_A, json={"question": "数据库故障测试"})
         assert response.status_code == 200, response.text
         run = response.json()
         assert run["status"] in {
@@ -576,17 +539,13 @@ def test_business_database_outage_becomes_a_structured_tool_failure(env):
 def test_model_service_failure_returns_llm_unavailable_without_tools(env):
     llm = ScriptedLLM([LLMUnavailable("simulated provider outage")])
     with _client(env, llm) as client:
-        response = client.post(
-            "/api/v1/agent/runs", headers=AUTH_A, json={"question": "模型故障测试"}
-        )
+        response = client.post("/api/v1/agent/runs", headers=AUTH_A, json={"question": "模型故障测试"})
         assert response.status_code == 200, response.text
         run = response.json()
         assert run["status"] == "llm_unavailable"
         assert run["tool_calls"] == []
         assert run["evidence"] == []
-        evidence = client.get(
-            f"/api/v1/agent/runs/{run['run_id']}/evidence", headers=AUTH_A
-        )
+        evidence = client.get(f"/api/v1/agent/runs/{run['run_id']}/evidence", headers=AUTH_A)
         assert evidence.status_code == 200
         assert evidence.json()["count"] == 0
 
@@ -608,40 +567,26 @@ def test_restart_marks_unfinished_run_interrupted_and_history_exposes_it(env):
     )
     with _client(env, ScriptedLLM([finish_response("不应被调用。")])) as client:
         history = client.get("/api/v1/agent/runs", headers=AUTH_A).json()
-        item = next(
-            row for row in history["items"] if row["run_id"] == "run-restart-phase8"
-        )
+        item = next(row for row in history["items"] if row["run_id"] == "run-restart-phase8")
         assert item["status"] == "interrupted"
-        run = client.get(
-            "/api/v1/agent/runs/run-restart-phase8", headers=AUTH_A
-        ).json()
+        run = client.get("/api/v1/agent/runs/run-restart-phase8", headers=AUTH_A).json()
         assert run["status"] == "interrupted"
         assert run["stop_reason"] == "process_restart"
 
 
 def test_report_evidence_and_approval_are_owner_isolated(env):
     with _client(env, ScriptedLLM(_call_pair())) as client:
-        response = client.post(
-            "/api/v1/agent/runs", headers=AUTH_A, json={"question": "审批隔离测试"}
-        )
+        response = client.post("/api/v1/agent/runs", headers=AUTH_A, json={"question": "审批隔离测试"})
         assert response.status_code == 200, response.text
         run_id = response.json()["run_id"]
 
         for suffix in ("evidence", "findings", "report"):
-            other = client.get(
-                f"/api/v1/agent/runs/{run_id}/{suffix}", headers=AUTH_B
-            )
+            other = client.get(f"/api/v1/agent/runs/{run_id}/{suffix}", headers=AUTH_B)
             assert other.status_code == 404, (suffix, other.text)
-            admin = client.get(
-                f"/api/v1/agent/runs/{run_id}/{suffix}", headers=AUTH_ADMIN
-            )
+            admin = client.get(f"/api/v1/agent/runs/{run_id}/{suffix}", headers=AUTH_ADMIN)
             assert admin.status_code == 200, (suffix, admin.text)
 
-        approval_other = client.get(
-            f"/api/v1/agent/runs/{run_id}/report/approval", headers=AUTH_B
-        )
+        approval_other = client.get(f"/api/v1/agent/runs/{run_id}/report/approval", headers=AUTH_B)
         assert approval_other.status_code == 404
-        approval_admin = client.get(
-            f"/api/v1/agent/runs/{run_id}/report/approval", headers=AUTH_ADMIN
-        )
+        approval_admin = client.get(f"/api/v1/agent/runs/{run_id}/report/approval", headers=AUTH_ADMIN)
         assert approval_admin.status_code == 200

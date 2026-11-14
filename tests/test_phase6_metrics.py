@@ -48,22 +48,12 @@ def _seed(store: PersistentRunStore) -> None:
             },
         )
     with store.engine.begin() as connection:
+        connection.execute(text("UPDATE agent_runs SET execution_seconds = 10.0 WHERE run_id = 'run-ok'"))
         connection.execute(
-            text(
-                "UPDATE agent_runs SET execution_seconds = 10.0 WHERE run_id = 'run-ok'"
-            )
+            text("UPDATE agent_runs SET execution_seconds = 30.0, resume_count = 1 WHERE run_id = 'run-warn'")
         )
         connection.execute(
-            text(
-                "UPDATE agent_runs SET execution_seconds = 30.0, resume_count = 1 "
-                "WHERE run_id = 'run-warn'"
-            )
-        )
-        connection.execute(
-            text(
-                "UPDATE agent_runs SET execution_seconds = 20.0, resume_count = 1 "
-                "WHERE run_id = 'run-fail'"
-            )
+            text("UPDATE agent_runs SET execution_seconds = 20.0, resume_count = 1 WHERE run_id = 'run-fail'")
         )
     store.put_tool_result(
         run_id="run-ok",
@@ -147,8 +137,7 @@ def _seed(store: PersistentRunStore) -> None:
                 report_version=1,
                 status="validated",
                 report_json="{}",
-                validation_json='{"issues": [{"code": "unsourced_number"}], '
-                '"unverified_numbers": ["9.9"]}',
+                validation_json='{"issues": [{"code": "unsourced_number"}], "unverified_numbers": ["9.9"]}',
                 created_at="2026-10-31T00:00:00+00:00",
             )
         )
@@ -238,9 +227,7 @@ def test_metrics_snapshot_computes_runtime_quality(store):
     assert snapshot["performance"]["retries"]["tool"] is None
     assert snapshot["performance"]["timeouts"]["runs"] == 0
     assert snapshot["performance"]["by_domain"]["unspecified"]["runs"] == 1
-    assert snapshot["performance"]["by_domain"]["unspecified"][
-        "avg_execution_seconds"
-    ] == pytest.approx(10.0)
+    assert snapshot["performance"]["by_domain"]["unspecified"]["avg_execution_seconds"] == pytest.approx(10.0)
 
     assert snapshot["checkpoints"]["count"] == 1
     assert snapshot["checkpoints"]["storage_bytes"] == 40
@@ -324,9 +311,7 @@ def test_metrics_endpoint_requires_admin_and_returns_payload(store):
         run_store=store,
     )
     with TestClient(app) as client:
-        forbidden = client.get(
-            "/api/v1/metrics", headers={"X-API-Key": "agent-key"}
-        )
+        forbidden = client.get("/api/v1/metrics", headers={"X-API-Key": "agent-key"})
         assert forbidden.status_code == 403
         response = client.get("/api/v1/metrics", headers={"X-API-Key": "admin-key"})
         assert response.status_code == 200, response.text

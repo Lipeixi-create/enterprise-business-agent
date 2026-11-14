@@ -135,16 +135,12 @@ def test_async_run_is_idempotent_and_queryable(env):
     headers = {"X-API-Key": "agent-key", "Idempotency-Key": "same-key"}
 
     with TestClient(app) as client:
-        first = client.post(
-            "/api/v1/agent/runs/async", headers=headers, json={"question": "测试异步"}
-        )
+        first = client.post("/api/v1/agent/runs/async", headers=headers, json={"question": "测试异步"})
         assert first.status_code == 202
         assert first.json()["status"] in {"queued", "running"}
         run_id = first.json()["run_id"]
 
-        second = client.post(
-            "/api/v1/agent/runs/async", headers=headers, json={"question": "测试异步"}
-        )
+        second = client.post("/api/v1/agent/runs/async", headers=headers, json={"question": "测试异步"})
         assert second.status_code == 202
         assert second.json()["run_id"] == run_id
         assert second.headers.get("Idempotency-Replayed") == "true"
@@ -153,9 +149,7 @@ def test_async_run_is_idempotent_and_queryable(env):
         assert document["status"] == "no_evidence"
         assert len(llm.calls) == 1
 
-        events = client.get(
-            f"/api/v1/agent/runs/{run_id}/events", headers={"X-API-Key": "agent-key"}
-        )
+        events = client.get(f"/api/v1/agent/runs/{run_id}/events", headers={"X-API-Key": "agent-key"})
         assert events.status_code == 200
         event_types = [item["event_type"] for item in events.json()["events"]]
         assert "run_created" in event_types
@@ -170,21 +164,15 @@ def test_sync_run_writes_audit_and_sse_stream(env):
     auth = {"X-API-Key": "agent-key"}
 
     with TestClient(app) as client:
-        response = client.post(
-            "/api/v1/agent/runs", headers=auth, json={"question": "同步测试"}
-        )
+        response = client.post("/api/v1/agent/runs", headers=auth, json={"question": "同步测试"})
         assert response.status_code == 200
         run_id = response.json()["run_id"]
 
-        events = client.get(
-            f"/api/v1/agent/runs/{run_id}/events", headers=auth
-        ).json()["events"]
+        events = client.get(f"/api/v1/agent/runs/{run_id}/events", headers=auth).json()["events"]
         assert [item["event_type"] for item in events] == ["run_finished"]
         assert events[0]["run_id"] == run_id
 
-        with client.stream(
-            "GET", f"/api/v1/agent/runs/{run_id}/stream", headers=auth
-        ) as stream:
+        with client.stream("GET", f"/api/v1/agent/runs/{run_id}/stream", headers=auth) as stream:
             assert stream.status_code == 200
             body = "".join(stream.iter_text())
         assert "event: status" in body
@@ -201,15 +189,11 @@ def test_cancel_is_cooperative_and_persisted(env):
     auth = {"X-API-Key": "agent-key"}
 
     with TestClient(app) as client:
-        submitted = client.post(
-            "/api/v1/agent/runs/async", headers=auth, json={"question": "取消测试"}
-        )
+        submitted = client.post("/api/v1/agent/runs/async", headers=auth, json={"question": "取消测试"})
         run_id = submitted.json()["run_id"]
 
         for _ in range(50):
-            status = client.get(
-                f"/api/v1/agent/runs/{run_id}", headers=auth
-            ).json()["status"]
+            status = client.get(f"/api/v1/agent/runs/{run_id}", headers=auth).json()["status"]
             if status == "running":
                 break
             time.sleep(0.02)
@@ -230,8 +214,7 @@ def test_interrupted_runs_are_marked_after_restart(env):
     try:
         store.put(
             "run-x",
-            {"run_id": "run-x", "status": "running", "question": "q",
-             "stop_reason": None},
+            {"run_id": "run-x", "status": "running", "question": "q", "stop_reason": None},
             owner="key:a",
             status="running",
         )

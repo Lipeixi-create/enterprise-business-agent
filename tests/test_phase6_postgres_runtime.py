@@ -205,9 +205,7 @@ def test_postgres_approval_state_machine(engine):
     assert [item.to_state for item in events] == ["pending", "approved"]
 
 
-@pytest.mark.skipif(
-    not RUNTIME_URL, reason="EBA_TEST_POSTGRES_RUNTIME_URL is not set"
-)
+@pytest.mark.skipif(not RUNTIME_URL, reason="EBA_TEST_POSTGRES_RUNTIME_URL is not set")
 def test_runtime_role_can_dml_but_not_ddl_or_superuser(engine):
     runtime_engine = create_engine(RUNTIME_URL, future=True)
     role = runtime_engine.url.username
@@ -223,28 +221,15 @@ def test_runtime_role_can_dml_but_not_ddl_or_superuser(engine):
                     "'2026-10-31T00:00:00+00:00', '{}')"
                 )
             )
-            connection.execute(
-                text(
-                    "UPDATE agent_runs SET status = 'completed' "
-                    "WHERE run_id = 'pg-runtime-role-run'"
-                )
-            )
+            connection.execute(text("UPDATE agent_runs SET status = 'completed' WHERE run_id = 'pg-runtime-role-run'"))
             value = connection.execute(
-                text(
-                    "SELECT status FROM agent_runs "
-                    "WHERE run_id = 'pg-runtime-role-run'"
-                )
+                text("SELECT status FROM agent_runs WHERE run_id = 'pg-runtime-role-run'")
             ).scalar_one()
             assert value == "completed"
-            connection.execute(
-                text("DELETE FROM agent_runs WHERE run_id = 'pg-runtime-role-run'")
-            )
+            connection.execute(text("DELETE FROM agent_runs WHERE run_id = 'pg-runtime-role-run'"))
 
             attrs = connection.execute(
-                text(
-                    "SELECT rolsuper, rolcreatedb, rolcreaterole "
-                    "FROM pg_roles WHERE rolname = current_user"
-                )
+                text("SELECT rolsuper, rolcreatedb, rolcreaterole FROM pg_roles WHERE rolname = current_user")
             ).one()
             assert tuple(attrs) == (False, False, False)
 
@@ -254,9 +239,7 @@ def test_runtime_role_can_dml_but_not_ddl_or_superuser(engine):
             assert can_create_schema is False
 
         with engine.begin() as admin_connection:
-            admin_connection.execute(
-                text("CREATE TABLE eba_business_probe (id int)")
-            )
+            admin_connection.execute(text("CREATE TABLE eba_business_probe (id int)"))
         try:
             with pytest.raises(DBAPIError):
                 with runtime_engine.connect() as connection:

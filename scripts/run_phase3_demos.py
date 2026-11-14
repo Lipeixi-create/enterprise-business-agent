@@ -9,11 +9,11 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
+from sqlalchemy.engine import make_url  # noqa: E402
+
 from enterprise_business_agent.config import get_settings  # noqa: E402
 from enterprise_business_agent.db import make_readonly_session_factory  # noqa: E402
 from enterprise_business_agent.nl import NaturalLanguageAnalyzer, NaturalLanguageRequest  # noqa: E402
-from sqlalchemy.engine import make_url  # noqa: E402
-
 
 DEMOS = [
     "2025年第四季度净利润环比变化",
@@ -41,9 +41,7 @@ def _print_result(request_id, response) -> None:
     elif response.result_type.value == "top_n":
         print("  " + " | ".join(f"{item.dimension_value}={item.value}" for item in response.result.items))
     elif response.result_type.value == "contribution":
-        print(
-            f"  total_change={response.result.total_change} sum={response.result.sum_contributions}"
-        )
+        print(f"  total_change={response.result.total_change} sum={response.result.sum_contributions}")
         print(
             "  "
             + " | ".join(
@@ -78,9 +76,7 @@ def main() -> int:
     with factory() as session:
         analyzer = NaturalLanguageAnalyzer(session, settings)
         for index, question in enumerate(DEMOS, start=1):
-            response = analyzer.analyze(
-                NaturalLanguageRequest(question=question, as_of=date(2025, 12, 1))
-            )
+            response = analyzer.analyze(NaturalLanguageRequest(question=question, as_of=date(2025, 12, 1)))
             _print_result(f"demo-{index}", response)
             if response.status.value != "ok":
                 failures += 1

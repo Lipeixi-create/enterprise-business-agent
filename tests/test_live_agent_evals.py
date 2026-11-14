@@ -6,7 +6,6 @@ uses a scripted planner; it checks the evaluator, never real model quality.
 
 from __future__ import annotations
 
-import json
 import os
 import subprocess
 import sys
@@ -28,7 +27,6 @@ from enterprise_business_agent.config import Settings
 from enterprise_business_agent.data_generator import generate_data
 from enterprise_business_agent.db import Base, make_engine, make_readonly_engine
 from enterprise_business_agent.security import AuthorizationPolicy, Principal
-
 
 ROOT = Path(__file__).resolve().parents[1]
 CASES = ROOT / "tests" / "evals" / "live_agent_cases.jsonl"
@@ -103,9 +101,7 @@ def test_every_canonical_value_matches_the_database(eval_env):
     for case in load_live_agent_cases(CASES):
         if case.query_check is None:
             continue
-        correct, observed, summary, error = _canonical_check(
-            case.query_check, registry, PRINCIPAL
-        )
+        correct, observed, summary, error = _canonical_check(case.query_check, registry, PRINCIPAL)
         assert error is None, (case.id, error)
         assert correct, (case.id, observed, case.query_check)
         assert summary
@@ -136,9 +132,7 @@ def test_live_scoring_marks_all_dimensions_with_a_scripted_planner(eval_env):
     case = load_live_agent_cases(CASES)[0]
     runtime = AgentRuntime(llm_client=None, registry=registry, settings=settings)
     runtime.llm = ScriptedPlanLLM(case.required_calls)
-    result = run_live_agent_case(
-        case, runtime=runtime, registry=registry, principal=PRINCIPAL
-    )
+    result = run_live_agent_case(case, runtime=runtime, registry=registry, principal=PRINCIPAL)
 
     assert result.planning_correct is True
     assert result.tool_argument_correct is True

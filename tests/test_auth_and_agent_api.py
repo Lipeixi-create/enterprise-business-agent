@@ -106,10 +106,13 @@ def test_restricted_region_filter_is_forbidden(client):
 def test_result_is_scoped_to_owner(client):
     response = _nl(client, "analyst-a")
     request_id = response.json()["request_id"]
-    assert client.get(
-        f"/api/v1/analysis/results/{request_id}",
-        headers={"X-API-Key": "analyst-a"},
-    ).status_code == 200
+    assert (
+        client.get(
+            f"/api/v1/analysis/results/{request_id}",
+            headers={"X-API-Key": "analyst-a"},
+        ).status_code
+        == 200
+    )
     other = client.get(
         f"/api/v1/analysis/results/{request_id}",
         headers={"X-API-Key": "analyst-b"},

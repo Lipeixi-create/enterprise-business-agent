@@ -37,12 +37,44 @@ def fixed_dataset():
     channels = [Channel(id=1, code="DIRECT", name="直营"), Channel(id=2, code="ECOM", name="电商")]
     suppliers = [Supplier(id=1, code="SUP", name="供应商", reliability_score=Decimal("0.95"))]
     products = [
-        Product(id=1, code="P001", name="商品一", category="测试", base_price=_money(100), base_cost=_money(60), supplier_id=1),
-        Product(id=2, code="P002", name="商品二", category="测试", base_price=_money(100), base_cost=_money(80), supplier_id=1),
+        Product(
+            id=1,
+            code="P001",
+            name="商品一",
+            category="测试",
+            base_price=_money(100),
+            base_cost=_money(60),
+            supplier_id=1,
+        ),
+        Product(
+            id=2,
+            code="P002",
+            name="商品二",
+            category="测试",
+            base_price=_money(100),
+            base_cost=_money(80),
+            supplier_id=1,
+        ),
     ]
     campaigns = [
-        Campaign(id=1, code="C1", name="活动一", campaign_type="测试", target_roi=Decimal("2"), active_from=date(2024, 1, 1), active_to=date(2025, 12, 31)),
-        Campaign(id=2, code="C2", name="活动二", campaign_type="测试", target_roi=Decimal("1"), active_from=date(2024, 1, 1), active_to=date(2025, 12, 31)),
+        Campaign(
+            id=1,
+            code="C1",
+            name="活动一",
+            campaign_type="测试",
+            target_roi=Decimal("2"),
+            active_from=date(2024, 1, 1),
+            active_to=date(2025, 12, 31),
+        ),
+        Campaign(
+            id=2,
+            code="C2",
+            name="活动二",
+            campaign_type="测试",
+            target_roi=Decimal("1"),
+            active_from=date(2024, 1, 1),
+            active_to=date(2025, 12, 31),
+        ),
     ]
     departments = [
         Department(id=1, code="SALES", name="销售部", domain="Sales"),
@@ -125,12 +157,26 @@ def fixed_dataset():
     session.add_all(
         [
             MarketingFact(
-                period=date(2025, 1, 1), campaign_id=1, region_id=1, channel_id=2,
-                spend=_money(100), impressions=1000, clicks=100, conversions=10, attributed_revenue=_money(300),
+                period=date(2025, 1, 1),
+                campaign_id=1,
+                region_id=1,
+                channel_id=2,
+                spend=_money(100),
+                impressions=1000,
+                clicks=100,
+                conversions=10,
+                attributed_revenue=_money(300),
             ),
             MarketingFact(
-                period=date(2025, 2, 1), campaign_id=2, region_id=1, channel_id=2,
-                spend=_money(200), impressions=500, clicks=50, conversions=10, attributed_revenue=_money(200),
+                period=date(2025, 2, 1),
+                campaign_id=2,
+                region_id=1,
+                channel_id=2,
+                spend=_money(200),
+                impressions=500,
+                clicks=50,
+                conversions=10,
+                attributed_revenue=_money(200),
             ),
         ]
     )
@@ -167,14 +213,24 @@ def fixed_dataset():
         for month in (1, 2, 3):
             session.add(
                 HRMonthly(
-                    period=date(year, month, 1), department_id=1, headcount=10, hires=1,
-                    turnover_count=0, turnover_rate=Decimal("0"), labor_cost=_money(sales_labor),
+                    period=date(year, month, 1),
+                    department_id=1,
+                    headcount=10,
+                    hires=1,
+                    turnover_count=0,
+                    turnover_rate=Decimal("0"),
+                    labor_cost=_money(sales_labor),
                 )
             )
             session.add(
                 HRMonthly(
-                    period=date(year, month, 1), department_id=2, headcount=20, hires=1,
-                    turnover_count=1, turnover_rate=Decimal("0.05"), labor_cost=_money(marketing_labor),
+                    period=date(year, month, 1),
+                    department_id=2,
+                    headcount=20,
+                    hires=1,
+                    turnover_count=1,
+                    turnover_rate=Decimal("0.05"),
+                    labor_cost=_money(marketing_labor),
                 )
             )
 

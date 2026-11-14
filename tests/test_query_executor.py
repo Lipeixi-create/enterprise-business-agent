@@ -11,9 +11,9 @@ from enterprise_business_agent.security import (
     ExecutionFailure,
     GuardedQuery,
     QueryErrorCode,
-    SQLGuard,
     SafeQueryExecutor,
     SecureQueryService,
+    SQLGuard,
 )
 
 
@@ -23,9 +23,7 @@ def database_file(tmp_path):
     engine = make_engine(f"sqlite:///{path}")
     with engine.begin() as connection:
         connection.execute(text("CREATE TABLE t (x INTEGER, label TEXT)"))
-        connection.execute(
-            text("INSERT INTO t (x, label) VALUES (1, 'a'), (2, 'b'), (3, 'c'), (4, 'd'), (5, 'e')")
-        )
+        connection.execute(text("INSERT INTO t (x, label) VALUES (1, 'a'), (2, 'b'), (3, 'c'), (4, 'd'), (5, 'e')"))
     yield path, engine
     engine.dispose()
 
@@ -114,10 +112,7 @@ def test_timeout_is_mapped_to_structured_error(database_file):
     _, engine = database_file
     executor = SafeQueryExecutor(engine, max_rows=10, timeout_ms=100)
     query = GuardedQuery(
-        sql=(
-            "WITH RECURSIVE cnt(x) AS (SELECT 1 UNION ALL SELECT x + 1 FROM cnt) "
-            "SELECT COUNT(*) AS n FROM cnt"
-        ),
+        sql=("WITH RECURSIVE cnt(x) AS (SELECT 1 UNION ALL SELECT x + 1 FROM cnt) SELECT COUNT(*) AS n FROM cnt"),
         params={},
         tables=(),
         columns=("x",),

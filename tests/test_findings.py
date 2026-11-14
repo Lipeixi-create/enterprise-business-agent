@@ -62,9 +62,7 @@ def _comparison(change_rate="0.25", *, metric="sales_amount") -> dict:
     }
 
 
-def _contribution(
-    *, residual="0", total_change="-250.00", dimension="region"
-) -> dict:
+def _contribution(*, residual="0", total_change="-250.00", dimension="region") -> dict:
     return {
         "metric": "sales_amount",
         "label": "销售额",
@@ -202,12 +200,8 @@ def test_trend_unknown_direction_produces_no_finding():
 
 def test_metric_value_finding_uses_tool_summary_and_traceability():
     payload = {"metric": "sales_amount", "label": "销售额", "summary": "销售额为 1200.00"}
-    traceable = FindingEngine().build(
-        "run-1", [_evidence("e-val", "metric_value", payload, traceable=True)]
-    )[0]
-    untraceable = FindingEngine().build(
-        "run-1", [_evidence("e-val2", "metric_value", payload, traceable=False)]
-    )[0]
+    traceable = FindingEngine().build("run-1", [_evidence("e-val", "metric_value", payload, traceable=True)])[0]
+    untraceable = FindingEngine().build("run-1", [_evidence("e-val2", "metric_value", payload, traceable=False)])[0]
     assert traceable.confidence == 0.9
     assert untraceable.confidence == 0.6
     assert untraceable.limitations
@@ -215,9 +209,7 @@ def test_metric_value_finding_uses_tool_summary_and_traceability():
 
 @pytest.mark.parametrize("status", ["insufficient_data", "not_calculable", "failed", "rejected"])
 def test_invalid_evidence_never_becomes_a_finding(status):
-    evidence = _evidence(
-        "e-bad", "comparison", _comparison(), status=status, traceable=False
-    )
+    evidence = _evidence("e-bad", "comparison", _comparison(), status=status, traceable=False)
     assert FindingEngine().build("run-1", [evidence]) == []
 
 
@@ -255,9 +247,7 @@ def test_cross_domain_requires_two_different_domains():
     left = _evidence("e1", "comparison", _comparison("-0.2"), domain="Sales")
     right = _evidence("e2", "comparison", _comparison("-0.2"), domain="Sales")
     findings = FindingEngine().build("run-1", [left, right])
-    assert not [
-        item for item in findings if item.finding_type in {"correlation", "hypothesis"}
-    ]
+    assert not [item for item in findings if item.finding_type in {"correlation", "hypothesis"}]
 
 
 def test_finding_ids_are_deterministic_for_same_inputs():

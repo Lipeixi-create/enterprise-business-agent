@@ -137,9 +137,7 @@ class SqlAlchemyCheckpointSaver(BaseCheckpointSaver):
     def _checkpoint_id(config: dict[str, Any]) -> str | None:
         return get_checkpoint_id(config)
 
-    def _config_for(
-        self, thread_id: str, checkpoint_ns: str, checkpoint_id: str
-    ) -> dict[str, Any]:
+    def _config_for(self, thread_id: str, checkpoint_ns: str, checkpoint_id: str) -> dict[str, Any]:
         return {
             "configurable": {
                 "thread_id": thread_id,
@@ -271,15 +269,10 @@ class SqlAlchemyCheckpointSaver(BaseCheckpointSaver):
                     _WRITES.c.idx,
                 )
             ).all()
-        checkpoint: Checkpoint = self.serde.loads_typed(
-            (row.checkpoint_type, row.checkpoint_value)
-        )
-        metadata: CheckpointMetadata = self.serde.loads_typed(
-            (row.metadata_type, row.metadata_value)
-        )
+        checkpoint: Checkpoint = self.serde.loads_typed((row.checkpoint_type, row.checkpoint_value))
+        metadata: CheckpointMetadata = self.serde.loads_typed((row.metadata_type, row.metadata_value))
         pending_writes: list[PendingWrite] = [
-            (item.task_id, item.channel, self.serde.loads_typed((item.value_type, item.value)))
-            for item in writes
+            (item.task_id, item.channel, self.serde.loads_typed((item.value_type, item.value))) for item in writes
         ]
         return CheckpointTuple(
             config=self._config_for(thread_id, checkpoint_ns, row.checkpoint_id),
@@ -322,9 +315,7 @@ class SqlAlchemyCheckpointSaver(BaseCheckpointSaver):
             metadata = self.serde.loads_typed((row.metadata_type, row.metadata_value))
             if filter and any(metadata.get(key) != value for key, value in filter.items()):
                 continue
-            item = self.get_tuple(
-                self._config_for(thread_id, checkpoint_ns, row.checkpoint_id)
-            )
+            item = self.get_tuple(self._config_for(thread_id, checkpoint_ns, row.checkpoint_id))
             if item is None:
                 continue
             yield item
@@ -334,12 +325,8 @@ class SqlAlchemyCheckpointSaver(BaseCheckpointSaver):
 
     def delete_thread(self, thread_id: str) -> None:
         with self.engine.begin() as connection:
-            connection.execute(
-                delete(_WRITES).where(_WRITES.c.thread_id == str(thread_id))
-            )
-            connection.execute(
-                delete(_CHECKPOINTS).where(_CHECKPOINTS.c.thread_id == str(thread_id))
-            )
+            connection.execute(delete(_WRITES).where(_WRITES.c.thread_id == str(thread_id)))
+            connection.execute(delete(_CHECKPOINTS).where(_CHECKPOINTS.c.thread_id == str(thread_id)))
 
     def latest_checkpoint_id(self, thread_id: str) -> str | None:
         with self.engine.connect() as connection:

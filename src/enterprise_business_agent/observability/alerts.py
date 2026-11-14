@@ -48,8 +48,7 @@ def evaluate_alerts(metrics: dict[str, Any], settings: Any) -> dict[str, Any]:
             _alert(
                 "run_failure_rate_high",
                 "critical" if failure_rate >= failure_limit * 2 else "warning",
-                f"Terminal run failure rate is {failure_rate:.0%}, above the "
-                f"{failure_limit:.0%} threshold.",
+                f"Terminal run failure rate is {failure_rate:.0%}, above the {failure_limit:.0%} threshold.",
                 observed=failure_rate,
                 threshold=failure_limit,
                 scope=f"{terminal} terminal runs in the shared run store",
@@ -65,13 +64,11 @@ def evaluate_alerts(metrics: dict[str, Any], settings: Any) -> dict[str, Any]:
             _alert(
                 "run_p95_latency_high",
                 "warning",
-                f"P95 run execution time is {p95:.1f}s, above the "
-                f"{p95_limit:.1f}s threshold.",
+                f"P95 run execution time is {p95:.1f}s, above the {p95_limit:.1f}s threshold.",
                 observed=p95,
                 threshold=p95_limit,
                 scope=f"{terminal} terminal runs",
-                runbook="Check model latency, tool timeouts and queue wait; a high "
-                "p95 often follows provider retries.",
+                runbook="Check model latency, tool timeouts and queue wait; a high p95 often follows provider retries.",
             )
         )
 
@@ -83,8 +80,7 @@ def evaluate_alerts(metrics: dict[str, Any], settings: Any) -> dict[str, Any]:
             _alert(
                 "approvals_backlog",
                 "warning",
-                f"{pending} report approvals are pending, above the "
-                f"{pending_limit} threshold.",
+                f"{pending} report approvals are pending, above the {pending_limit} threshold.",
                 observed=pending,
                 threshold=pending_limit,
                 scope="agent_report_approvals where state=pending",
@@ -117,8 +113,7 @@ def evaluate_alerts(metrics: dict[str, Any], settings: Any) -> dict[str, Any]:
             _alert(
                 "database_connection_errors",
                 "critical",
-                f"{connection_errors} database connection error(s) were observed "
-                "in this process.",
+                f"{connection_errors} database connection error(s) were observed in this process.",
                 observed=connection_errors,
                 threshold=0,
                 scope="process-local run store counter",

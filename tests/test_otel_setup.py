@@ -39,9 +39,7 @@ class _RecordingExporter:
     def __init__(self, succeed: bool = True):
         from opentelemetry.sdk.trace.export import SpanExportResult
 
-        self._result = (
-            SpanExportResult.SUCCESS if succeed else SpanExportResult.FAILURE
-        )
+        self._result = SpanExportResult.SUCCESS if succeed else SpanExportResult.FAILURE
         self.spans: list = []
 
     def export(self, spans):

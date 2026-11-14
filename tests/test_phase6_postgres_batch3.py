@@ -11,7 +11,6 @@ from __future__ import annotations
 import multiprocessing
 import os
 from datetime import datetime, timedelta, timezone
-from typing import Any
 
 import pytest
 from fastapi.testclient import TestClient
@@ -62,9 +61,7 @@ def engine():
     drop_runtime_schema(eng)
     create_runtime_schema(eng)
     if RUNTIME_URL:
-        grant_runtime_role(
-            eng, create_engine(RUNTIME_URL, future=True).url.username
-        )
+        grant_runtime_role(eng, create_engine(RUNTIME_URL, future=True).url.username)
     yield eng
     drop_runtime_schema(eng)
     eng.dispose()
@@ -103,18 +100,13 @@ def _run(store: PersistentRunStore, run_id: str, status: str = "interrupted") ->
 
 
 def _stamp(days_old: float) -> str:
-    return (datetime.now(timezone.utc) - timedelta(days=days_old)).isoformat(
-        timespec="microseconds"
-    )
+    return (datetime.now(timezone.utc) - timedelta(days=days_old)).isoformat(timespec="microseconds")
 
 
 def _expire(store: PersistentRunStore, run_id: str) -> None:
     with store.engine.begin() as connection:
         connection.execute(
-            text(
-                "UPDATE agent_runs SET lease_expires_at = :expired "
-                "WHERE run_id = :run_id"
-            ),
+            text("UPDATE agent_runs SET lease_expires_at = :expired WHERE run_id = :run_id"),
             {"expired": _stamp(1), "run_id": run_id},
         )
 
@@ -123,9 +115,7 @@ def _claim_worker(url: str, run_id: str, barrier, queue) -> None:
     store = PersistentRunStore(url)
     try:
         barrier.wait(timeout=30)
-        attempt = store.acquire_claim(
-            run_id, "worker", 120, allowed_statuses={"interrupted"}
-        )
+        attempt = store.acquire_claim(run_id, "worker", 120, allowed_statuses={"interrupted"})
         queue.put(
             (
                 attempt.reason,
@@ -143,10 +133,7 @@ def test_two_independent_processes_only_one_claim_wins(store):
     context = multiprocessing.get_context("spawn")
     barrier = context.Barrier(2)
     queue = context.Queue()
-    processes = [
-        context.Process(target=_claim_worker, args=(url, "pg-claim-race", barrier, queue))
-        for _ in range(2)
-    ]
+    processes = [context.Process(target=_claim_worker, args=(url, "pg-claim-race", barrier, queue)) for _ in range(2)]
     for process in processes:
         process.start()
     for process in processes:
@@ -168,9 +155,7 @@ def test_two_independent_processes_only_one_claim_wins(store):
 
 def test_live_lease_returns_409_on_the_resume_endpoint(store):
     _run(store, "pg-claim-http")
-    claim = store.acquire_claim(
-        "pg-claim-http", "worker-live", 120, allowed_statuses={"interrupted"}
-    ).claim
+    claim = store.acquire_claim("pg-claim-http", "worker-live", 120, allowed_statuses={"interrupted"}).claim
     assert claim is not None
     settings = Settings(
         phase5_enabled=False,
@@ -211,15 +196,11 @@ def test_live_lease_returns_409_on_the_resume_endpoint(store):
 
 def test_expired_lease_allows_takeover_and_stale_worker_cannot_write(store):
     _run(store, "pg-fencing")
-    first = store.acquire_claim(
-        "pg-fencing", "worker-old", 120, allowed_statuses={"interrupted"}
-    ).claim
+    first = store.acquire_claim("pg-fencing", "worker-old", 120, allowed_statuses={"interrupted"}).claim
     assert first is not None
     _expire(store, "pg-fencing")
 
-    second = store.acquire_claim(
-        "pg-fencing", "worker-new", 120, allowed_statuses={"interrupted"}
-    ).claim
+    second = store.acquire_claim("pg-fencing", "worker-new", 120, allowed_statuses={"interrupted"}).claim
     assert second is not None
     assert second.claim_version == first.claim_version + 1
 
@@ -386,10 +367,7 @@ def _age(store: PersistentRunStore, run_id: str, days_old: float = 10) -> None:
     value = _stamp(days_old)
     with store.engine.begin() as connection:
         connection.execute(
-            text(
-                "UPDATE agent_runs SET created_at = :stamp, updated_at = :stamp "
-                "WHERE run_id = :run_id"
-            ),
+            text("UPDATE agent_runs SET created_at = :stamp, updated_at = :stamp WHERE run_id = :run_id"),
             {"stamp": value, "run_id": run_id},
         )
 
@@ -397,9 +375,7 @@ def _age(store: PersistentRunStore, run_id: str, days_old: float = 10) -> None:
 def _count(engine, table, key: str, run_id: str) -> int:
     with engine.connect() as connection:
         return int(
-            connection.execute(
-                select(func.count()).select_from(table).where(table.c[key] == run_id)
-            ).scalar_one()
+            connection.execute(select(func.count()).select_from(table).where(table.c[key] == run_id)).scalar_one()
         )
 
 
@@ -445,9 +421,7 @@ def test_postgres_cleanup_deletes_all_ten_objects_in_one_transaction(store):
     ):
         assert _count(store.engine, table, key, "pg-clean") == 0, table.name
     with store.engine.connect() as connection:
-        detail = connection.execute(
-            select(EVENTS.c.detail).where(EVENTS.c.event_type == "run_cleanup")
-        ).first()
+        detail = connection.execute(select(EVENTS.c.detail).where(EVENTS.c.event_type == "run_cleanup")).first()
     assert detail is not None
     assert '"run_count": 1' in detail[0]
 
@@ -457,9 +431,7 @@ def test_postgres_cleanup_dry_run_and_active_lease_protection(store):
     _age(store, "pg-dry")
     _children(store.engine, "pg-dry")
     _run(store, "pg-live-clean", status="running")
-    claim = store.acquire_claim(
-        "pg-live-clean", "worker-live", 120, allowed_statuses={"running"}
-    ).claim
+    claim = store.acquire_claim("pg-live-clean", "worker-live", 120, allowed_statuses={"running"}).claim
     assert claim is not None
 
     dry = store.cleanup_runs(dry_run=True, retention_seconds=RETENTION_ZERO)
@@ -501,9 +473,7 @@ def test_postgres_cleanup_rolls_back_every_table_on_failure(store):
         assert _count(store.engine, CHECKPOINTS, "thread_id", "pg-rollback") == 1
     finally:
         with store.engine.begin() as connection:
-            connection.execute(
-                text("DROP TRIGGER IF EXISTS eba_block_report_delete ON agent_reports")
-            )
+            connection.execute(text("DROP TRIGGER IF EXISTS eba_block_report_delete ON agent_reports"))
             connection.execute(text("DROP FUNCTION IF EXISTS eba_block_report_delete()"))
 
 
@@ -515,10 +485,7 @@ def test_postgres_runtime_role_cannot_read_business_or_run_ddl(engine):
     try:
         with runtime_engine.connect() as connection:
             attrs = connection.execute(
-                text(
-                    "SELECT rolsuper, rolcreatedb, rolcreaterole "
-                    "FROM pg_roles WHERE rolname = current_user"
-                )
+                text("SELECT rolsuper, rolcreatedb, rolcreaterole FROM pg_roles WHERE rolname = current_user")
             ).one()
             assert tuple(attrs) == (False, False, False)
             with pytest.raises(Exception):

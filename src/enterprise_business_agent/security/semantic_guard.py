@@ -16,7 +16,6 @@ from ..metric_resolver import DimensionRegistry, MetricResolver
 from ..query_compiler import CompiledQuery
 from .errors import GuardRejection, QueryErrorCode
 
-
 _ALLOWED_OPERATORS = {"eq", "ne", "in", "gt", "gte", "lt", "lte"}
 _CATEGORICAL_OPERATORS = {"eq", "ne", "in"}
 _FORBIDDEN_SQL_TOKENS = (
@@ -131,11 +130,7 @@ class SemanticQueryGuard:
             if dimension.table:
                 expected_tables.add(dimension.table)
                 table_columns.setdefault(dimension.table, set()).update(
-                    {
-                        value
-                        for value in (dimension.key_column, dimension.code_column, dimension.name_column)
-                        if value
-                    }
+                    {value for value in (dimension.key_column, dimension.code_column, dimension.name_column) if value}
                 )
 
         for item in compiled.filters:
@@ -150,18 +145,12 @@ class SemanticQueryGuard:
             if dimension.table:
                 expected_tables.add(dimension.table)
                 table_columns.setdefault(dimension.table, set()).update(
-                    {
-                        value
-                        for value in (dimension.key_column, dimension.code_column, dimension.name_column)
-                        if value
-                    }
+                    {value for value in (dimension.key_column, dimension.code_column, dimension.name_column) if value}
                 )
                 table_columns[metric.source_table].add(dimension.fact_column or "")
 
         actual_tables = {
-            str(node.name).lower()
-            for node in visitors.iterate(statement)
-            if isinstance(node, Table) and node.name
+            str(node.name).lower() for node in visitors.iterate(statement) if isinstance(node, Table) and node.name
         }
         expected_tables = {item.lower() for item in expected_tables if item}
         if actual_tables != expected_tables:

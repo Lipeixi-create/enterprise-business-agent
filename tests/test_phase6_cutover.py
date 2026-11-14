@@ -37,6 +37,4 @@ def test_runtime_store_refuses_missing_schema_instead_of_using_sqlite():
 
 def test_runtime_store_fails_fast_when_postgres_is_unreachable():
     with pytest.raises(OperationalError):
-        PersistentRunStore(
-            "postgresql+psycopg://eba_runtime@127.0.0.1:1/eba_unreachable"
-        )
+        PersistentRunStore("postgresql+psycopg://eba_runtime@127.0.0.1:1/eba_unreachable")

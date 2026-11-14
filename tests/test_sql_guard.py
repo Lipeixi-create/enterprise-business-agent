@@ -39,7 +39,9 @@ def test_allows_read_only_cte(guard):
 
 
 def test_allows_count_star_without_select_star(guard):
-    query = guard.validate("SELECT COUNT(*) AS n FROM sales_fact WHERE period >= :start", params={"start": "2025-01-01"})
+    query = guard.validate(
+        "SELECT COUNT(*) AS n FROM sales_fact WHERE period >= :start", params={"start": "2025-01-01"}
+    )
     assert query.sql.endswith("LIMIT 11")
 
 

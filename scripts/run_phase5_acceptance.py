@@ -157,9 +157,7 @@ def main() -> int:
         settings.query_timeout_ms,
     )
     factory = sessionmaker(bind=business_engine, class_=Session, expire_on_commit=False)
-    run_engine = create_engine(
-        f"sqlite:///{ROOT / 'phase5_acceptance_runs.db'}", future=True
-    )
+    run_engine = create_engine(f"sqlite:///{ROOT / 'phase5_acceptance_runs.db'}", future=True)
     pipeline = Phase5Pipeline(
         run_engine,
         llm=llm,
@@ -176,9 +174,7 @@ def main() -> int:
         settings=settings,
         pipeline=pipeline,
     )
-    principal = Principal(
-        "key:acceptance", "analyst", frozenset({"metrics:read", "agent:run"})
-    )
+    principal = Principal("key:acceptance", "analyst", frozenset({"metrics:read", "agent:run"}))
 
     results = []
     exit_code = 0
@@ -197,12 +193,12 @@ def main() -> int:
         payload["question"] = question
         payload["wall_ms"] = elapsed
         if key == "E":
-            text = (result.final_answer or "") + " " + (
-                payload["report"]["executive_summary"] if payload["report"] else ""
+            text = (
+                (result.final_answer or "")
+                + " "
+                + (payload["report"]["executive_summary"] if payload["report"] else "")
             )
-            payload["prediction_refusal_signal"] = any(
-                signal in text for signal in REFUSAL_SIGNALS
-            )
+            payload["prediction_refusal_signal"] = any(signal in text for signal in REFUSAL_SIGNALS)
             if not payload["prediction_refusal_signal"]:
                 exit_code = 1
         results.append(payload)
@@ -226,9 +222,7 @@ def main() -> int:
         "tool_call_limit": args.max_tool_calls,
         "runs": results,
     }
-    Path(args.output).write_text(
-        json.dumps(output, ensure_ascii=False, indent=2), encoding="utf-8"
-    )
+    Path(args.output).write_text(json.dumps(output, ensure_ascii=False, indent=2), encoding="utf-8")
     print(f"\nwrote {args.output}")
     business_engine.dispose()
     run_engine.dispose()

@@ -11,12 +11,12 @@ from sqlalchemy.engine import Engine
 
 from .. import __version__
 from ..agent import AgentRuntime, AnalysisGateway, ToolRegistry
-from ..mcp import McpToolServer
 from ..agent.checkpoint import SqlAlchemyCheckpointSaver
 from ..config import Settings, get_settings
 from ..db import make_readonly_engine
 from ..evidence import Phase5Pipeline
 from ..llm import LLMClient, build_llm_client
+from ..mcp import McpToolServer
 from ..nl.contracts import ErrorInfo
 from ..observability.setup import configure_tracing, shutdown_tracing, tracing_status
 from ..security import AuthorizationPolicy

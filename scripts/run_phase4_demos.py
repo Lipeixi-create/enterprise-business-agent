@@ -29,9 +29,7 @@ class ToolResultDrivenDemoLLM:
     def __init__(self):
         self.calls = 0
 
-    def complete_with_tools(
-        self, *, system, messages, tools, timeout_seconds: float | None = None
-    ):
+    def complete_with_tools(self, *, system, messages, tools, timeout_seconds: float | None = None):
         self.calls += 1
         tool_messages = [item for item in messages if item.get("role") == "tool"]
         if not tool_messages:
@@ -74,10 +72,7 @@ class ToolResultDrivenDemoLLM:
                     ],
                 },
             )
-        summaries = [
-            json.loads(item["content"]).get("summary")
-            for item in tool_messages
-        ]
+        summaries = [json.loads(item["content"]).get("summary") for item in tool_messages]
         return LLMToolResponse(
             text="根据工具结果：" + "；".join(value for value in summaries if value),
             tool_calls=[],
@@ -104,9 +99,7 @@ def main() -> int:
         agent_tool_timeout_seconds=5,
         agent_tool_max_retries=0,
     )
-    principal = Principal(
-        "key:demo", "analyst", frozenset({"metrics:read", "agent:run"})
-    )
+    principal = Principal("key:demo", "analyst", frozenset({"metrics:read", "agent:run"}))
     question = "华东2025年12月销售表现如何？哪些产品贡献最大？"
     print("planner: fake-demo-tool-loop (scripted test double, NOT a real LLM)")
     print(f"question: {question}")
@@ -118,9 +111,7 @@ def main() -> int:
         with Session(write_engine) as seed:
             generate_data(seed, date(2024, 1, 1), 24, reset=False)
             seed.commit()
-        read_engine = make_readonly_engine(
-            f"sqlite:///{path}", settings.query_timeout_ms
-        )
+        read_engine = make_readonly_engine(f"sqlite:///{path}", settings.query_timeout_ms)
         factory = sessionmaker(bind=read_engine, class_=Session, expire_on_commit=False)
         registry = ToolRegistry(
             AnalysisGateway(factory, settings),
@@ -143,14 +134,10 @@ def main() -> int:
     print(f"planner={result.planner} planner_model={result.planner_model}")
     print("\ntrace:")
     for step in result.steps:
-        print(
-            f"  step {step.index}: action={step.action} tool={step.tool}"
-            f" call_id={step.tool_call_id}"
-        )
+        print(f"  step {step.index}: action={step.action} tool={step.tool} call_id={step.tool_call_id}")
     for call in result.tool_calls:
         print(
-            f"  tool {call.tool} status={call.status} duration_ms={call.duration_ms}"
-            f" evidence_ids={call.evidence_ids}"
+            f"  tool {call.tool} status={call.status} duration_ms={call.duration_ms} evidence_ids={call.evidence_ids}"
         )
         print(f"    args={json.dumps(call.arguments, ensure_ascii=False)}")
         print(f"    summary={call.summary}")

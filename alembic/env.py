@@ -5,14 +5,15 @@ import sys
 from logging.config import fileConfig
 from pathlib import Path
 
-from alembic import context
 from sqlalchemy import engine_from_config, pool
+
+from alembic import context
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(PROJECT_ROOT / "src"))
 
-from enterprise_business_agent.db import Base  # noqa: E402
 from enterprise_business_agent import models  # noqa: F401,E402
+from enterprise_business_agent.db import Base  # noqa: E402
 
 config = context.config
 if config.config_file_name is not None and config.get_section("loggers"):
@@ -25,7 +26,9 @@ def get_url() -> str:
 
 
 def run_migrations_offline() -> None:
-    context.configure(url=get_url(), target_metadata=target_metadata, literal_binds=True, dialect_opts={"paramstyle": "named"})
+    context.configure(
+        url=get_url(), target_metadata=target_metadata, literal_binds=True, dialect_opts={"paramstyle": "named"}
+    )
     with context.begin_transaction():
         context.run_migrations()
 

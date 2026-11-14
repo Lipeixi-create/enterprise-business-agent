@@ -211,18 +211,14 @@ class ValidationIssue(BaseModel):
     message: str
     location: str | None = None
     evidence_id: str | None = None
-    category: Literal[
-        "business_result", "tool_parameter", "date_component", "unsupported_number"
-    ] | None = None
+    category: Literal["business_result", "tool_parameter", "date_component", "unsupported_number"] | None = None
 
 
 class NumberClassification(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     token: str
-    category: Literal[
-        "business_result", "tool_parameter", "date_component", "unsupported_number"
-    ]
+    category: Literal["business_result", "tool_parameter", "date_component", "unsupported_number"]
     allowed: bool
     location: str | None = None
 

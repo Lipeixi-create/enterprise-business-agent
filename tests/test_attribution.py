@@ -126,8 +126,6 @@ def test_attribution_from_invalid_evidence_returns_none():
 
 
 def test_attribution_does_not_invent_missing_numbers():
-    result = build_attribution(
-        _response(items=[ContributionItem(dimension_value="EC")])
-    )
+    result = build_attribution(_response(items=[ContributionItem(dimension_value="EC")]))
     assert result.items[0].contribution is None
     assert result.items[0].absolute_change is None

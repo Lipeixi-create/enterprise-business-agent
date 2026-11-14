@@ -3,7 +3,7 @@ from __future__ import annotations
 import random
 from collections import defaultdict
 from datetime import date
-from decimal import Decimal, ROUND_HALF_UP
+from decimal import ROUND_HALF_UP, Decimal
 
 from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
@@ -48,8 +48,19 @@ TARGET_INVENTORY_DAYS = {"P006": 14.0, "P008": 9.0}
 DEFAULT_TARGET_INVENTORY_DAYS = 30.0
 
 CAMPAIGN_SCALE = {
-    "C101": 1.0, "C102": 1.8, "C103": 1.0, "C104": 2.2, "C105": 1.25, "C106": 0.7,
-    "C001": 1.0, "C002": 0.9, "C003": 1.8, "C004": 1.0, "C005": 2.2, "C006": 1.25, "C007": 0.7,
+    "C101": 1.0,
+    "C102": 1.8,
+    "C103": 1.0,
+    "C104": 2.2,
+    "C105": 1.25,
+    "C106": 0.7,
+    "C001": 1.0,
+    "C002": 0.9,
+    "C003": 1.8,
+    "C004": 1.0,
+    "C005": 2.2,
+    "C006": 1.25,
+    "C007": 0.7,
 }
 
 
@@ -100,19 +111,36 @@ def allocate_units(total: int, weights: dict[str, int]) -> dict[str, int]:
 
 
 def reset_database(session: Session) -> None:
-    for model in (InventorySnapshot, PurchaseFact, FinanceMonthly, MarketingFact, SalesFact, HRMonthly, Product, Campaign, Department, Channel, Region, Supplier):
+    for model in (
+        InventorySnapshot,
+        PurchaseFact,
+        FinanceMonthly,
+        MarketingFact,
+        SalesFact,
+        HRMonthly,
+        Product,
+        Campaign,
+        Department,
+        Channel,
+        Region,
+        Supplier,
+    ):
         session.execute(delete(model))
     session.commit()
 
 
 def seed_dimensions(session: Session) -> dict[str, dict[str, int]]:
     regions = [
-        Region(code="EC", name="华东"), Region(code="NC", name="华北"),
-        Region(code="SC", name="华南"), Region(code="WC", name="西部"),
+        Region(code="EC", name="华东"),
+        Region(code="NC", name="华北"),
+        Region(code="SC", name="华南"),
+        Region(code="WC", name="西部"),
     ]
     channels = [
-        Channel(code="DIRECT", name="直营"), Channel(code="ECOM", name="电商"),
-        Channel(code="DIST", name="经销商"), Channel(code="RETAIL", name="零售"),
+        Channel(code="DIRECT", name="直营"),
+        Channel(code="ECOM", name="电商"),
+        Channel(code="DIST", name="经销商"),
+        Channel(code="RETAIL", name="零售"),
     ]
     suppliers = [
         Supplier(code="SUP-A", name="华信制造", reliability_score=Decimal("0.96")),
@@ -124,29 +152,176 @@ def seed_dimensions(session: Session) -> dict[str, dict[str, int]]:
     session.flush()
     supplier_by_code = {x.code: x.id for x in suppliers}
     products = [
-        Product(code="P001", name="智能办公套装", category="办公设备", base_price=money(1299), base_cost=money(720), supplier_id=supplier_by_code["SUP-A"]),
-        Product(code="P002", name="商务显示器", category="办公设备", base_price=money(1899), base_cost=money(1120), supplier_id=supplier_by_code["SUP-B"]),
-        Product(code="P003", name="无线键鼠套装", category="电脑周边", base_price=money(299), base_cost=money(145), supplier_id=supplier_by_code["SUP-C"]),
-        Product(code="P004", name="移动硬盘", category="存储设备", base_price=money(699), base_cost=money(410), supplier_id=supplier_by_code["SUP-A"]),
-        Product(code="P005", name="会议摄像头", category="会议设备", base_price=money(1599), base_cost=money(930), supplier_id=supplier_by_code["SUP-B"]),
-        Product(code="P006", name="高端扩展坞", category="电脑周边", base_price=money(899), base_cost=money(560), supplier_id=supplier_by_code["SUP-D"]),
-        Product(code="P007", name="企业路由器", category="网络设备", base_price=money(1199), base_cost=money(690), supplier_id=supplier_by_code["SUP-C"]),
-        Product(code="P008", name="专业麦克风", category="会议设备", base_price=money(499), base_cost=money(320), supplier_id=supplier_by_code["SUP-D"]),
+        Product(
+            code="P001",
+            name="智能办公套装",
+            category="办公设备",
+            base_price=money(1299),
+            base_cost=money(720),
+            supplier_id=supplier_by_code["SUP-A"],
+        ),
+        Product(
+            code="P002",
+            name="商务显示器",
+            category="办公设备",
+            base_price=money(1899),
+            base_cost=money(1120),
+            supplier_id=supplier_by_code["SUP-B"],
+        ),
+        Product(
+            code="P003",
+            name="无线键鼠套装",
+            category="电脑周边",
+            base_price=money(299),
+            base_cost=money(145),
+            supplier_id=supplier_by_code["SUP-C"],
+        ),
+        Product(
+            code="P004",
+            name="移动硬盘",
+            category="存储设备",
+            base_price=money(699),
+            base_cost=money(410),
+            supplier_id=supplier_by_code["SUP-A"],
+        ),
+        Product(
+            code="P005",
+            name="会议摄像头",
+            category="会议设备",
+            base_price=money(1599),
+            base_cost=money(930),
+            supplier_id=supplier_by_code["SUP-B"],
+        ),
+        Product(
+            code="P006",
+            name="高端扩展坞",
+            category="电脑周边",
+            base_price=money(899),
+            base_cost=money(560),
+            supplier_id=supplier_by_code["SUP-D"],
+        ),
+        Product(
+            code="P007",
+            name="企业路由器",
+            category="网络设备",
+            base_price=money(1199),
+            base_cost=money(690),
+            supplier_id=supplier_by_code["SUP-C"],
+        ),
+        Product(
+            code="P008",
+            name="专业麦克风",
+            category="会议设备",
+            base_price=money(499),
+            base_cost=money(320),
+            supplier_id=supplier_by_code["SUP-D"],
+        ),
     ]
     campaigns = [
-        Campaign(code="C101", name="春季增长 2024", campaign_type="内容营销", target_roi=Decimal("2.40"), active_from=date(2024, 1, 1), active_to=date(2024, 3, 31)),
-        Campaign(code="C102", name="618 大促 2024", campaign_type="大促活动", target_roi=Decimal("4.20"), active_from=date(2024, 6, 1), active_to=date(2024, 6, 30)),
-        Campaign(code="C103", name="开学季 2024", campaign_type="社交广告", target_roi=Decimal("2.10"), active_from=date(2024, 8, 1), active_to=date(2024, 9, 30)),
-        Campaign(code="C104", name="双十一 2024", campaign_type="大促活动", target_roi=Decimal("4.80"), active_from=date(2024, 11, 1), active_to=date(2024, 11, 30)),
-        Campaign(code="C105", name="品牌曝光 Q4 2024", campaign_type="品牌广告", target_roi=Decimal("1.10"), active_from=date(2024, 10, 1), active_to=date(2024, 12, 31)),
-        Campaign(code="C106", name="常青投放 2024", campaign_type="内容营销", target_roi=Decimal("1.80"), active_from=date(2024, 1, 1), active_to=date(2024, 12, 31)),
-        Campaign(code="C001", name="春季增长", campaign_type="内容营销", target_roi=Decimal("2.50"), active_from=date(2025, 1, 1), active_to=date(2025, 3, 31)),
-        Campaign(code="C002", name="新客转化", campaign_type="搜索广告", target_roi=Decimal("2.80"), active_from=date(2025, 2, 1), active_to=date(2025, 4, 30)),
-        Campaign(code="C003", name="618 大促", campaign_type="大促活动", target_roi=Decimal("4.50"), active_from=date(2025, 6, 1), active_to=date(2025, 6, 30)),
-        Campaign(code="C004", name="开学季", campaign_type="社交广告", target_roi=Decimal("2.20"), active_from=date(2025, 8, 1), active_to=date(2025, 9, 30)),
-        Campaign(code="C005", name="双十一", campaign_type="大促活动", target_roi=Decimal("5.00"), active_from=date(2025, 11, 1), active_to=date(2025, 11, 30)),
-        Campaign(code="C006", name="品牌曝光 Q4", campaign_type="品牌广告", target_roi=Decimal("0.65"), active_from=date(2025, 10, 1), active_to=date(2025, 12, 31)),
-        Campaign(code="C007", name="常青投放 2025", campaign_type="内容营销", target_roi=Decimal("1.75"), active_from=date(2025, 1, 1), active_to=date(2025, 12, 31)),
+        Campaign(
+            code="C101",
+            name="春季增长 2024",
+            campaign_type="内容营销",
+            target_roi=Decimal("2.40"),
+            active_from=date(2024, 1, 1),
+            active_to=date(2024, 3, 31),
+        ),
+        Campaign(
+            code="C102",
+            name="618 大促 2024",
+            campaign_type="大促活动",
+            target_roi=Decimal("4.20"),
+            active_from=date(2024, 6, 1),
+            active_to=date(2024, 6, 30),
+        ),
+        Campaign(
+            code="C103",
+            name="开学季 2024",
+            campaign_type="社交广告",
+            target_roi=Decimal("2.10"),
+            active_from=date(2024, 8, 1),
+            active_to=date(2024, 9, 30),
+        ),
+        Campaign(
+            code="C104",
+            name="双十一 2024",
+            campaign_type="大促活动",
+            target_roi=Decimal("4.80"),
+            active_from=date(2024, 11, 1),
+            active_to=date(2024, 11, 30),
+        ),
+        Campaign(
+            code="C105",
+            name="品牌曝光 Q4 2024",
+            campaign_type="品牌广告",
+            target_roi=Decimal("1.10"),
+            active_from=date(2024, 10, 1),
+            active_to=date(2024, 12, 31),
+        ),
+        Campaign(
+            code="C106",
+            name="常青投放 2024",
+            campaign_type="内容营销",
+            target_roi=Decimal("1.80"),
+            active_from=date(2024, 1, 1),
+            active_to=date(2024, 12, 31),
+        ),
+        Campaign(
+            code="C001",
+            name="春季增长",
+            campaign_type="内容营销",
+            target_roi=Decimal("2.50"),
+            active_from=date(2025, 1, 1),
+            active_to=date(2025, 3, 31),
+        ),
+        Campaign(
+            code="C002",
+            name="新客转化",
+            campaign_type="搜索广告",
+            target_roi=Decimal("2.80"),
+            active_from=date(2025, 2, 1),
+            active_to=date(2025, 4, 30),
+        ),
+        Campaign(
+            code="C003",
+            name="618 大促",
+            campaign_type="大促活动",
+            target_roi=Decimal("4.50"),
+            active_from=date(2025, 6, 1),
+            active_to=date(2025, 6, 30),
+        ),
+        Campaign(
+            code="C004",
+            name="开学季",
+            campaign_type="社交广告",
+            target_roi=Decimal("2.20"),
+            active_from=date(2025, 8, 1),
+            active_to=date(2025, 9, 30),
+        ),
+        Campaign(
+            code="C005",
+            name="双十一",
+            campaign_type="大促活动",
+            target_roi=Decimal("5.00"),
+            active_from=date(2025, 11, 1),
+            active_to=date(2025, 11, 30),
+        ),
+        Campaign(
+            code="C006",
+            name="品牌曝光 Q4",
+            campaign_type="品牌广告",
+            target_roi=Decimal("0.65"),
+            active_from=date(2025, 10, 1),
+            active_to=date(2025, 12, 31),
+        ),
+        Campaign(
+            code="C007",
+            name="常青投放 2025",
+            campaign_type="内容营销",
+            target_roi=Decimal("1.75"),
+            active_from=date(2025, 1, 1),
+            active_to=date(2025, 12, 31),
+        ),
     ]
     departments = [
         Department(code="SALES", name="销售部", domain="Sales"),
@@ -167,15 +342,23 @@ def seed_dimensions(session: Session) -> dict[str, dict[str, int]]:
     }
 
 
-def generate_data(session: Session, start: date = date(2024, 1, 1), months: int = 24, reset: bool = False) -> dict[str, int]:
+def generate_data(
+    session: Session, start: date = date(2024, 1, 1), months: int = 24, reset: bool = False
+) -> dict[str, int]:
     if reset:
         reset_database(session)
     ids = seed_dimensions(session)
     regions = ["EC", "NC", "SC", "WC"]
     channels = ["DIRECT", "ECOM", "DIST", "RETAIL"]
     product_specs = {
-        "P001": (1299, 720, 1.00), "P002": (1899, 1120, 0.75), "P003": (299, 145, 1.80), "P004": (699, 410, 1.10),
-        "P005": (1599, 930, 0.65), "P006": (899, 560, 0.80), "P007": (1199, 690, 0.72), "P008": (499, 320, 1.35),
+        "P001": (1299, 720, 1.00),
+        "P002": (1899, 1120, 0.75),
+        "P003": (299, 145, 1.80),
+        "P004": (699, 410, 1.10),
+        "P005": (1599, 930, 0.65),
+        "P006": (899, 560, 0.80),
+        "P007": (1199, 690, 0.72),
+        "P008": (499, 320, 1.35),
     }
     region_factor = {"EC": 1.22, "NC": 1.00, "SC": 0.96, "WC": 0.82}
     channel_factor = {"DIRECT": 0.82, "ECOM": 1.28, "DIST": 0.93, "RETAIL": 0.76}
@@ -282,7 +465,9 @@ def generate_data(session: Session, start: date = date(2024, 1, 1), months: int 
 
                 product = product_objects[ids["products"][product_code]]
                 supplier = supplier_objects[product.supplier_id]
-                unit_cost = float(base_cost) * product_inflation * (1.0 + (1 - float(supplier.reliability_score)) * 0.04)
+                unit_cost = (
+                    float(base_cost) * product_inflation * (1.0 + (1 - float(supplier.reliability_score)) * 0.04)
+                )
                 session.add(
                     PurchaseFact(
                         period=period,
@@ -300,7 +485,13 @@ def generate_data(session: Session, start: date = date(2024, 1, 1), months: int 
         for campaign in active_campaigns:
             for region_code in regions:
                 for channel_code in ("ECOM", "RETAIL"):
-                    spend = 42000 * CAMPAIGN_SCALE[campaign.code] * region_factor[region_code] * (1.10 if channel_code == "ECOM" else 0.78) * (1.0 + rng.uniform(-0.05, 0.05))
+                    spend = (
+                        42000
+                        * CAMPAIGN_SCALE[campaign.code]
+                        * region_factor[region_code]
+                        * (1.10 if channel_code == "ECOM" else 0.78)
+                        * (1.0 + rng.uniform(-0.05, 0.05))
+                    )
                     if campaign.code == "C006":
                         offset = period.month - 10
                         spend *= 1.0 + 0.15 * offset
@@ -342,7 +533,9 @@ def generate_data(session: Session, start: date = date(2024, 1, 1), months: int 
             hires = max(1, int(headcount * (0.025 if dept_code != "MARKETING" else 0.05)))
             turnover = max(0, int(headcount * (0.012 if dept_code != "SALES" else 0.025)))
             rate = turnover / headcount
-            labor = headcount * salaries[dept_code] * (1 + 0.012 * cal_index) * (1.10 if q4_marketing_boost > 1.0 else 1.0)
+            labor = (
+                headcount * salaries[dept_code] * (1 + 0.012 * cal_index) * (1.10 if q4_marketing_boost > 1.0 else 1.0)
+            )
             session.add(
                 HRMonthly(
                     period=period,
@@ -386,8 +579,14 @@ def generate_data(session: Session, start: date = date(2024, 1, 1), months: int 
             counts["finance_monthly"] += 1
 
     session.commit()
-    counts.update({
-        "regions": session.query(Region).count(), "channels": session.query(Channel).count(), "products": session.query(Product).count(),
-        "campaigns": session.query(Campaign).count(), "departments": session.query(Department).count(), "suppliers": session.query(Supplier).count(),
-    })
+    counts.update(
+        {
+            "regions": session.query(Region).count(),
+            "channels": session.query(Channel).count(),
+            "products": session.query(Product).count(),
+            "campaigns": session.query(Campaign).count(),
+            "departments": session.query(Department).count(),
+            "suppliers": session.query(Supplier).count(),
+        }
+    )
     return dict(counts)

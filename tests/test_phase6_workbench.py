@@ -53,9 +53,7 @@ def env(tmp_path):
         generate_data(seed, date(2024, 1, 1), 24, reset=False)
         seed.commit()
     write_engine.dispose()
-    engine = make_readonly_engine(
-        f"sqlite:///{db_path}", settings.query_timeout_ms
-    )
+    engine = make_readonly_engine(f"sqlite:///{db_path}", settings.query_timeout_ms)
     factory = sessionmaker(bind=engine, class_=Session, expire_on_commit=False)
     run_store = PersistentRunStore(f"sqlite:///{tmp_path / 'workbench-runs.db'}")
     yield {
@@ -144,25 +142,19 @@ def test_workbench_scope_isolation_and_filters(env):
     _approval(env, index=3, run_id="run-c", requested_by="key:owner-c")
 
     with _client(env) as client:
-        analyst_view = client.get(
-            "/api/v1/agent/approvals", headers={"X-API-Key": "agent-key"}
-        )
+        analyst_view = client.get("/api/v1/agent/approvals", headers={"X-API-Key": "agent-key"})
         assert analyst_view.status_code == 200, analyst_view.text
         body = analyst_view.json()
         assert body["scope"] == "self"
         assert body["total"] == 1
         assert body["items"][0]["run_id"] == "run-a"
 
-        approver_view = client.get(
-            "/api/v1/agent/approvals", headers={"X-API-Key": "approver-key"}
-        )
+        approver_view = client.get("/api/v1/agent/approvals", headers={"X-API-Key": "approver-key"})
         assert approver_view.status_code == 200, approver_view.text
         assert approver_view.json()["total"] == 1
         assert approver_view.json()["items"][0]["run_id"] == "run-a"
 
-        manager_view = client.get(
-            "/api/v1/agent/approvals", headers={"X-API-Key": "manager-key"}
-        )
+        manager_view = client.get("/api/v1/agent/approvals", headers={"X-API-Key": "manager-key"})
         assert manager_view.status_code == 200, manager_view.text
         manager_body = manager_view.json()
         assert manager_body["scope"] == "all"
@@ -211,8 +203,7 @@ def test_workbench_pagination_sorting_and_time_filters(env):
     with env["run_store"].engine.begin() as connection:
         connection.execute(
             text(
-                "UPDATE agent_report_approvals SET created_at = "
-                "'2025-01-01T00:00:00+00:00' WHERE run_id = 'run-bulk-1'"
+                "UPDATE agent_report_approvals SET created_at = '2025-01-01T00:00:00+00:00' WHERE run_id = 'run-bulk-1'"
             )
         )
 
@@ -254,8 +245,6 @@ def test_workbench_pagination_sorting_and_time_filters(env):
 
 def test_workbench_requires_approval_read_scope(env):
     with _client(env) as client:
-        response = client.get(
-            "/api/v1/agent/approvals", headers={"X-API-Key": "viewer-key"}
-        )
+        response = client.get("/api/v1/agent/approvals", headers={"X-API-Key": "viewer-key"})
     assert response.status_code == 403
     assert response.json()["error"]["code"] == "forbidden"

@@ -94,9 +94,7 @@ def _query(client, key: str, metric: str, **overrides):
         ("hr-key", "headcount", "revenue"),
     ],
 )
-def test_department_analysts_are_limited_to_their_domain(
-    client, key, allowed_metric, denied_metric
-):
+def test_department_analysts_are_limited_to_their_domain(client, key, allowed_metric, denied_metric):
     allowed = _query(client, key, allowed_metric)
     assert allowed.status_code == 200
     assert allowed.json()["status"] == "ok"
@@ -219,9 +217,7 @@ def test_region_scope_cannot_be_bypassed_by_removing_or_widening_filters(client)
         client,
         "restricted-key",
         "sales_amount",
-        filters=[
-            {"dimension": "region", "operator": "in", "value": ["EC", "NC"]}
-        ],
+        filters=[{"dimension": "region", "operator": "in", "value": ["EC", "NC"]}],
     )
     assert widened_in.status_code == 403
 

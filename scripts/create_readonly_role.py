@@ -10,6 +10,7 @@ The password is read from EBA_READONLY_PASSWORD and is never printed or logged.
 The script requires an administrative connection only for setup; the API must
 use READONLY_DATABASE_URL with this role.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -46,8 +47,7 @@ def _statements(role: str, database: str, password: str) -> list[sql.Composed]:
         sql.SQL("GRANT SELECT ON ALL TABLES IN SCHEMA public TO {}").format(role_id),
         sql.SQL("ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT ON TABLES TO {}").format(role_id),
         sql.SQL(
-            "REVOKE INSERT, UPDATE, DELETE, TRUNCATE, REFERENCES, TRIGGER "
-            "ON ALL TABLES IN SCHEMA public FROM {}"
+            "REVOKE INSERT, UPDATE, DELETE, TRUNCATE, REFERENCES, TRIGGER ON ALL TABLES IN SCHEMA public FROM {}"
         ).format(role_id),
         sql.SQL("REVOKE CREATE ON SCHEMA public FROM {}").format(role_id),
     ]

@@ -29,7 +29,6 @@ from enterprise_business_agent.agent import (
     ToolRegistry,
     ToolResult,
 )
-from enterprise_business_agent.agent.tools import MetricQueryArgs
 from enterprise_business_agent.agent.contracts import EvidenceDraft, ModelToolMessage
 from enterprise_business_agent.agent.evaluation import (
     LiveEvalCase,
@@ -42,6 +41,7 @@ from enterprise_business_agent.agent.evaluation import (
     run_live_agent_case,
 )
 from enterprise_business_agent.agent.relations import relation_issues
+from enterprise_business_agent.agent.tools import MetricQueryArgs
 from enterprise_business_agent.config import Settings
 from enterprise_business_agent.data_generator import generate_data
 from enterprise_business_agent.db import Base, make_engine, make_readonly_engine
@@ -82,8 +82,7 @@ def _message(
         reused=reused,
         trusted=trusted,
         evidence_ids=["ev-1"] if trusted else [],
-        arguments=arguments
-        or {"metric": metric, "dimension": "region", "n": len(rows)},
+        arguments=arguments or {"metric": metric, "dimension": "region", "n": len(rows)},
         content=content,
         content_sha256=hashlib.sha256(encoded).hexdigest(),
         content_bytes=len(encoded),
@@ -128,9 +127,7 @@ def test_detail_number_in_trusted_tool_message_is_verified():
     )
     state = _state([message], evidence="返回 2 行明细。")
 
-    unverified = AgentRuntime._unverified_numbers(
-        "P008 的销售额为 14779，P003 为 18163。", state
-    )
+    unverified = AgentRuntime._unverified_numbers("P008 的销售额为 14779，P003 为 18163。", state)
 
     assert unverified == []
 
@@ -139,9 +136,7 @@ def test_fabricated_number_is_still_flagged():
     message = _message([{"dimension_value": "P003", "value": 18163}])
     state = _state([message], evidence="返回 1 行明细。")
 
-    unverified = AgentRuntime._unverified_numbers(
-        "P003 的销售额为 18163，另有 99999 来自未知来源。", state
-    )
+    unverified = AgentRuntime._unverified_numbers("P003 的销售额为 18163，另有 99999 来自未知来源。", state)
 
     assert unverified == ["99999"]
 
@@ -230,9 +225,7 @@ def test_ranked_enumeration_after_maximum_only_claims_the_first_entry():
         ]
     )
 
-    issues = relation_issues(
-        "销售额最高的是 P003 18163、P008 14779、P001 9000。", [message]
-    )
+    issues = relation_issues("销售额最高的是 P003 18163、P008 14779、P001 9000。", [message])
 
     assert issues == []
 
@@ -246,9 +239,7 @@ def test_ranked_enumeration_still_rejects_a_wrong_first_entry():
         ]
     )
 
-    issues = relation_issues(
-        "销售额最高的是 P008 14779、P003 18163、P001 9000。", [message]
-    )
+    issues = relation_issues("销售额最高的是 P008 14779、P003 18163、P001 9000。", [message])
 
     assert {item["member"] for item in issues} == {"P008"}
     assert "max_mismatch" in {item["kind"] for item in issues}
@@ -348,10 +339,7 @@ def test_superlative_uses_the_named_metric_not_a_supporting_column():
         arguments={"metric": "ROI", "dimension": "campaign", "n": 2, "ascending": True},
     )
 
-    answer = (
-        "C006 的 ROI 最低，ROI=0.446114"
-        "（活动归因收入 229908.63 / 营销投入 515358.42）。"
-    )
+    answer = "C006 的 ROI 最低，ROI=0.446114（活动归因收入 229908.63 / 营销投入 515358.42）。"
 
     assert relation_issues(answer, [message]) == []
 
@@ -410,9 +398,7 @@ def test_quarter_is_not_mistaken_for_a_rank_claim():
         arguments={"metric": "sales_amount", "dimension": "channel", "n": 2},
     )
 
-    issues = relation_issues(
-        "2025年第四季度销售额最高的渠道是电商（ECOM）。", [message]
-    )
+    issues = relation_issues("2025年第四季度销售额最高的渠道是电商（ECOM）。", [message])
 
     assert issues == []
 
@@ -431,8 +417,7 @@ def test_negated_tie_claim_is_not_a_max_claim():
     )
 
     issues = relation_issues(
-        "前三名（NC、SC、WC）非常接近，相差仅 0.000131，"
-        "但数值并不相等，因此不能称为并列最高。",
+        "前三名（NC、SC、WC）非常接近，相差仅 0.000131，但数值并不相等，因此不能称为并列最高。",
         [message],
     )
 
@@ -440,12 +425,7 @@ def test_negated_tie_claim_is_not_a_max_claim():
 
 
 def test_count_claim_must_match_the_returned_row_count():
-    message = _message(
-        [
-            {"dimension_value": f"R{index}", "value": 500 - index * 10}
-            for index in range(5)
-        ]
-    )
+    message = _message([{"dimension_value": f"R{index}", "value": 500 - index * 10} for index in range(5)])
 
     issues = relation_issues("共 3 个区域贡献了主要销售额。", [message])
 
@@ -482,10 +462,30 @@ def test_answer_order_cannot_reverse_the_top_n_result():
 def test_monthly_rows_are_compared_within_the_named_period():
     message = _message(
         [
-            {"period": "2025-10", "dimensions": {"region": "EC"}, "dimension_labels": {"region": "华东"}, "value": "10"},
-            {"period": "2025-10", "dimensions": {"region": "NC"}, "dimension_labels": {"region": "华北"}, "value": "12"},
-            {"period": "2025-11", "dimensions": {"region": "EC"}, "dimension_labels": {"region": "华东"}, "value": "20"},
-            {"period": "2025-11", "dimensions": {"region": "NC"}, "dimension_labels": {"region": "华北"}, "value": "30"},
+            {
+                "period": "2025-10",
+                "dimensions": {"region": "EC"},
+                "dimension_labels": {"region": "华东"},
+                "value": "10",
+            },
+            {
+                "period": "2025-10",
+                "dimensions": {"region": "NC"},
+                "dimension_labels": {"region": "华北"},
+                "value": "12",
+            },
+            {
+                "period": "2025-11",
+                "dimensions": {"region": "EC"},
+                "dimension_labels": {"region": "华东"},
+                "value": "20",
+            },
+            {
+                "period": "2025-11",
+                "dimensions": {"region": "NC"},
+                "dimension_labels": {"region": "华北"},
+                "value": "30",
+            },
         ],
         tool="query_metric",
         metric="sales_amount",
@@ -500,10 +500,30 @@ def test_monthly_rows_are_compared_within_the_named_period():
 def test_monthly_global_claim_is_still_checked_against_the_named_period():
     message = _message(
         [
-            {"period": "2025-10", "dimensions": {"region": "EC"}, "dimension_labels": {"region": "华东"}, "value": "10"},
-            {"period": "2025-10", "dimensions": {"region": "NC"}, "dimension_labels": {"region": "华北"}, "value": "12"},
-            {"period": "2025-11", "dimensions": {"region": "EC"}, "dimension_labels": {"region": "华东"}, "value": "20"},
-            {"period": "2025-11", "dimensions": {"region": "NC"}, "dimension_labels": {"region": "华北"}, "value": "30"},
+            {
+                "period": "2025-10",
+                "dimensions": {"region": "EC"},
+                "dimension_labels": {"region": "华东"},
+                "value": "10",
+            },
+            {
+                "period": "2025-10",
+                "dimensions": {"region": "NC"},
+                "dimension_labels": {"region": "华北"},
+                "value": "12",
+            },
+            {
+                "period": "2025-11",
+                "dimensions": {"region": "EC"},
+                "dimension_labels": {"region": "华东"},
+                "value": "20",
+            },
+            {
+                "period": "2025-11",
+                "dimensions": {"region": "NC"},
+                "dimension_labels": {"region": "华北"},
+                "value": "30",
+            },
         ],
         tool="query_metric",
         metric="sales_amount",
@@ -645,9 +665,7 @@ def test_archive_records_identity_hash_and_visible_rows():
     assert entry["tool_call_id"] == "call-1"
     assert entry["tool"] == "top_n"
     assert entry["content"] == message.content
-    assert entry["content_sha256"] == hashlib.sha256(
-        message.content.encode("utf-8")
-    ).hexdigest()
+    assert entry["content_sha256"] == hashlib.sha256(message.content.encode("utf-8")).hexdigest()
     assert entry["visible_data"]["rows"][0]["dimension_value"] == "P003"
     assert entry["row_count"] == 3
 
@@ -685,9 +703,7 @@ def test_archive_caps_oversized_content_without_losing_the_hash():
 
     assert entry["content_truncated"] is True
     assert entry["content_bytes"] == len(content.encode("utf-8"))
-    assert entry["content_sha256"] == hashlib.sha256(
-        content.encode("utf-8")
-    ).hexdigest()
+    assert entry["content_sha256"] == hashlib.sha256(content.encode("utf-8")).hexdigest()
     assert len(entry["content"].encode("utf-8")) <= 16_384
 
 
@@ -824,9 +840,7 @@ def test_tool_result_without_evidence_is_not_trusted_and_cannot_verify_numbers(
 
 def _top_n_plan_llm(answer_for_rows):
     def decide(llm: ScriptedLLM):
-        tool_messages = [
-            item for item in llm.calls[-1]["messages"] if item["role"] == "tool"
-        ]
+        tool_messages = [item for item in llm.calls[-1]["messages"] if item["role"] == "tool"]
         if not tool_messages:
             return tool_response(
                 "c1",
@@ -852,20 +866,14 @@ def test_runtime_archived_tool_message_equals_the_message_the_model_received(run
 
     result = runtime.run("分析2025年3月区域销售排名", ANALYST)
 
-    received = [
-        item for item in llm.calls[-1]["messages"] if item["role"] == "tool"
-    ]
+    received = [item for item in llm.calls[-1]["messages"] if item["role"] == "tool"]
     assert len(result.tool_messages) == 1
     captured = result.tool_messages[0]
     assert captured.content == received[0]["content"]
-    assert captured.content_sha256 == hashlib.sha256(
-        received[0]["content"].encode("utf-8")
-    ).hexdigest()
+    assert captured.content_sha256 == hashlib.sha256(received[0]["content"].encode("utf-8")).hexdigest()
     assert captured.trusted is True
     assert captured.visible_data is not None
-    assert captured.visible_data["rows"] == json.loads(received[0]["content"])["data"][
-        "rows"
-    ]
+    assert captured.visible_data["rows"] == json.loads(received[0]["content"])["data"]["rows"]
 
 
 def test_eval_record_archives_tool_messages_and_flags_a_wrong_relation(runtime_env):
@@ -1148,10 +1156,7 @@ def test_english_multi_member_superlative_is_validated():
         label="sales",
     )
 
-    assert (
-        relation_issues("P003 and P009 have the highest denominator.", [message])
-        == []
-    )
+    assert relation_issues("P003 and P009 have the highest denominator.", [message]) == []
 
     issues = relation_issues("P003 and P008 have the highest denominator.", [message])
 
@@ -1168,10 +1173,7 @@ def test_metric_wording_is_not_treated_as_a_member():
 def test_same_sentence_max_and_min_do_not_bleed_into_one_claim():
     message = _message(_multi_rows(), label="销售额")
 
-    assert (
-        relation_issues("分母最高的是 P003（18163），最低的是 P009（9000）。", [message])
-        == []
-    )
+    assert relation_issues("分母最高的是 P003（18163），最低的是 P009（9000）。", [message]) == []
 
     issues = relation_issues("分母最高的是 P003，最低的是 P008。", [message])
 
@@ -1193,10 +1195,7 @@ def test_percentage_and_rounding_of_a_returned_rate_are_sourced():
         evidence="人力成本：2025 64508794 vs 2024 51305820，变化率 0.257339。",
     )
 
-    assert (
-        AgentRuntime._unverified_numbers("变化率 0.257339，即同比增长 25.73%。", state)
-        == []
-    )
+    assert AgentRuntime._unverified_numbers("变化率 0.257339，即同比增长 25.73%。", state) == []
     assert AgentRuntime._unverified_numbers("变化率约为 0.26。", state) == []
     assert AgentRuntime._unverified_numbers("同比增长 88.88%。", state) == ["88.88"]
 
@@ -1250,10 +1249,7 @@ def test_top_n_phrasing_is_not_a_single_member_minimum_claim():
         },
     )
 
-    answer = (
-        "最低的三个活动（升序排名）为：C006、C007、C005。"
-        "其中 C007 和 C005 在返回结果中仍为相对最低的三名。"
-    )
+    answer = "最低的三个活动（升序排名）为：C006、C007、C005。其中 C007 和 C005 在返回结果中仍为相对最低的三名。"
 
     assert relation_issues(answer, [message]) == []
 
@@ -1301,9 +1297,7 @@ def test_number_accuracy_reads_a_later_numbered_list_item():
 
 def test_number_accuracy_reads_a_bullet_under_a_bold_heading():
     answer = (
-        "**2025年12月营收同比2024年12月变化情况：**\n\n"
-        "- 2025年12月营收：79916777.37 元\n"
-        "- 同比变化率：**0.012393**\n"
+        "**2025年12月营收同比2024年12月变化情况：**\n\n- 2025年12月营收：79916777.37 元\n- 同比变化率：**0.012393**\n"
     )
 
     assert _number_matches(answer, "0.012393", terms=["营收"])
@@ -1364,11 +1358,7 @@ def test_change_column_under_a_profit_table_is_attributed():
 
 
 def test_swapped_metric_columns_are_still_rejected():
-    answer = (
-        "| 区域 | 销售额 | 毛利 |\n"
-        "|---|---|---|\n"
-        "| EC | 100 | 200 |\n"
-    )
+    answer = "| 区域 | 销售额 | 毛利 |\n|---|---|---|\n| EC | 100 | 200 |\n"
 
     assert not _number_matches(answer, "200", terms=["销售额"])
 
@@ -1466,10 +1456,7 @@ def test_largest_drag_compares_the_most_negative_contribution():
         arguments={"metric": "gross_profit", "dimension": "channel"},
     )
 
-    assert (
-        relation_issues("电商渠道是最大拖累，贡献了 -5294788.87。", [message])
-        == []
-    )
+    assert relation_issues("电商渠道是最大拖累，贡献了 -5294788.87。", [message]) == []
 
 
 def test_truncated_result_rejects_an_absence_claim_about_unshown_rows():
@@ -1579,10 +1566,7 @@ def test_comparison_phrase_does_not_select_the_supporting_column():
         arguments={"metric": "ROI", "dimension": "campaign", "n": 2, "ascending": True},
     )
 
-    answer = (
-        "C006 归因收入 229908.63，投放 515358.42，ROI = 0.446114，"
-        "收入低于投入，为两个活动中最低。"
-    )
+    answer = "C006 归因收入 229908.63，投放 515358.42，ROI = 0.446114，收入低于投入，为两个活动中最低。"
 
     assert relation_issues(answer, [message]) == []
 
@@ -1619,9 +1603,7 @@ def test_rank_range_and_rank_pair_comparison_are_not_rank_claims():
         label="毛利率",
     )
 
-    assert (
-        relation_issues("NC（第一名）与 EC（第四名）相差 0.007266。", [margin]) == []
-    )
+    assert relation_issues("NC（第一名）与 EC（第四名）相差 0.007266。", [margin]) == []
 
 
 def test_ranking_idiom_uses_the_preceding_subject_and_subset_scope():
@@ -1637,20 +1619,14 @@ def test_ranking_idiom_uses_the_preceding_subject_and_subset_scope():
         arguments={"metric": "fulfillment_rate", "dimension": "region", "n": 4, "ascending": True},
     )
 
-    answer = (
-        "SC、NC、WC 三个区域非常接近，其中 SC 华南数值最小，"
-        "按排名列第二，但与 NC、WC 差异极小。"
-    )
+    answer = "SC、NC、WC 三个区域非常接近，其中 SC 华南数值最小，按排名列第二，但与 NC、WC 差异极小。"
 
     assert relation_issues(answer, [message]) == []
 
 
 def test_unranked_member_list_is_not_an_order_claim():
     message = _message(
-        [
-            {"dimension_value": f"P{index:03d}", "value": 1000 - index, "rank": index}
-            for index in range(1, 9)
-        ],
+        [{"dimension_value": f"P{index:03d}", "value": 1000 - index, "rank": index} for index in range(1, 9)],
         metric="sales_amount",
         label="销售额",
     )

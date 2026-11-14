@@ -11,7 +11,7 @@ from __future__ import annotations
 import json
 from datetime import datetime, timezone
 from math import ceil
-from typing import Any, Iterable
+from typing import Any
 
 from sqlalchemy import func, select
 
@@ -72,9 +72,7 @@ def _attempt_seconds(payload: dict[str, Any]) -> float | None:
 
 
 def _counts_by(connection, table, column) -> dict[str, int]:
-    rows = connection.execute(
-        select(column, func.count()).select_from(table).group_by(column)
-    ).all()
+    rows = connection.execute(select(column, func.count()).select_from(table).group_by(column)).all()
     return {str(value or "unknown"): int(count) for value, count in rows}
 
 
@@ -115,40 +113,24 @@ def metrics_snapshot(store: PersistentRunStore, settings: Any) -> dict[str, Any]
         ).all()
         event_counts = _counts_by(connection, _EVENTS, _EVENTS.c.event_type)
         model_event_rows = connection.execute(
-            select(_EVENTS.c.run_id, _EVENTS.c.detail).where(
-                _EVENTS.c.event_type == "model_response"
-            )
+            select(_EVENTS.c.run_id, _EVENTS.c.detail).where(_EVENTS.c.event_type == "model_response")
         ).all()
-        evidence_domain_rows = connection.execute(
-            select(_EVIDENCE.c.run_id, _EVIDENCE.c.domain).distinct()
-        ).all()
-        checkpoint_count = int(
-            connection.execute(
-                select(func.count()).select_from(_CHECKPOINTS)
-            ).scalar_one()
-        )
+        evidence_domain_rows = connection.execute(select(_EVIDENCE.c.run_id, _EVIDENCE.c.domain).distinct()).all()
+        checkpoint_count = int(connection.execute(select(func.count()).select_from(_CHECKPOINTS)).scalar_one())
         checkpoint_bytes = int(
             connection.execute(
                 select(func.coalesce(func.sum(func.length(_CHECKPOINTS.c.checkpoint_value)), 0))
             ).scalar_one()
         )
-        report_rows = connection.execute(
-            select(_REPORTS.c.status, _REPORTS.c.validation_json)
-        ).all()
+        report_rows = connection.execute(select(_REPORTS.c.status, _REPORTS.c.validation_json)).all()
         evidence_runs = int(
             connection.execute(
                 select(func.count(func.distinct(_EVIDENCE.c.run_id)))
-                .select_from(
-                    _EVIDENCE.join(
-                        _RUNS, _EVIDENCE.c.run_id == _RUNS.c.run_id
-                    )
-                )
+                .select_from(_EVIDENCE.join(_RUNS, _EVIDENCE.c.run_id == _RUNS.c.run_id))
                 .where(_RUNS.c.status.in_(_COMPLETED))
             ).scalar_one()
         )
-        finding_count = int(
-            connection.execute(select(func.count()).select_from(_FINDINGS)).scalar_one()
-        )
+        finding_count = int(connection.execute(select(func.count()).select_from(_FINDINGS)).scalar_one())
         approval_rows = connection.execute(
             select(
                 _APPROVALS.c.state,
@@ -256,9 +238,9 @@ def metrics_snapshot(store: PersistentRunStore, settings: Any) -> dict[str, Any]
         for domain in domains:
             domain_runs.setdefault(domain, []).append(info)
             tokens = info["tokens"] or {}
-            domain_tokens[domain] = domain_tokens.get(domain, 0) + int(
-                tokens.get("input") or 0
-            ) + int(tokens.get("output") or 0)
+            domain_tokens[domain] = (
+                domain_tokens.get(domain, 0) + int(tokens.get("input") or 0) + int(tokens.get("output") or 0)
+            )
     by_domain = {}
     for domain, items in sorted(domain_runs.items()):
         domain_durations = [item["seconds"] for item in items if item["seconds"] > 0]
@@ -267,9 +249,7 @@ def metrics_snapshot(store: PersistentRunStore, settings: Any) -> dict[str, Any]
             "runs": len(items),
             "completed": domain_completed,
             "success_rate": _rate(domain_completed, len(items)),
-            "avg_execution_seconds": round(
-                sum(domain_durations) / len(domain_durations), 3
-            )
+            "avg_execution_seconds": round(sum(domain_durations) / len(domain_durations), 3)
             if domain_durations
             else None,
             "p95_execution_seconds": _percentile(domain_durations, 0.95),
@@ -281,8 +261,7 @@ def metrics_snapshot(store: PersistentRunStore, settings: Any) -> dict[str, Any]
     priced = price_in is not None and price_out is not None
     estimated_cost = (
         round(
-            tokens_in / 1_000_000 * float(price_in)
-            + tokens_out / 1_000_000 * float(price_out),
+            tokens_in / 1_000_000 * float(price_in) + tokens_out / 1_000_000 * float(price_out),
             6,
         )
         if priced
@@ -297,9 +276,7 @@ def metrics_snapshot(store: PersistentRunStore, settings: Any) -> dict[str, Any]
         "estimated": priced,
         "estimated_total": estimated_cost,
         "estimated_per_completed_run": (
-            round(estimated_cost / completed_for_cost, 6)
-            if estimated_cost is not None and completed_for_cost
-            else None
+            round(estimated_cost / completed_for_cost, 6) if estimated_cost is not None and completed_for_cost else None
         ),
         "basis": "run_store_token_count_x_configured_price",
         "note": (
@@ -311,32 +288,18 @@ def metrics_snapshot(store: PersistentRunStore, settings: Any) -> dict[str, Any]
     performance = {
         "model_calls_per_run": {
             "total": total_model_calls,
-            "avg": round(sum(model_calls_per_run) / len(model_calls_per_run), 3)
-            if model_calls_per_run
-            else None,
+            "avg": round(sum(model_calls_per_run) / len(model_calls_per_run), 3) if model_calls_per_run else None,
             "p95": _percentile(model_calls_per_run, 0.95),
             "max": max(model_calls_per_run) if model_calls_per_run else None,
             "scope": "shared_database_model_response_events",
         },
-        "avg_model_latency_ms": round(
-            sum(model_latencies) / len(model_latencies), 3
-        )
-        if model_latencies
-        else None,
+        "avg_model_latency_ms": round(sum(model_latencies) / len(model_latencies), 3) if model_latencies else None,
         "p95_model_latency_ms": _percentile(model_latencies, 0.95),
         "model_latency_scope": "sum_of_model_response_latency_per_run",
-        "avg_tool_duration_ms": round(
-            sum(tool_durations) / len(tool_durations), 3
-        )
-        if tool_durations
-        else None,
+        "avg_tool_duration_ms": round(sum(tool_durations) / len(tool_durations), 3) if tool_durations else None,
         "p95_tool_duration_ms": _percentile(tool_durations, 0.95),
         "tool_duration_scope": "run_payload_tool_call_duration",
-        "avg_tool_calls_per_run": round(
-            sum(tool_counts.values()) / len(tool_counts), 3
-        )
-        if tool_counts
-        else None,
+        "avg_tool_calls_per_run": round(sum(tool_counts.values()) / len(tool_counts), 3) if tool_counts else None,
         "timeouts": {
             "runs": int(status_counts.get("timeout", 0)),
             "llm": int(status_counts.get("llm_timeout", 0)),
@@ -368,9 +331,7 @@ def metrics_snapshot(store: PersistentRunStore, settings: Any) -> dict[str, Any]
             "exported_spans_scope": "process_local",
             "note": "tracing status could not be read",
         }
-    observability["otel_enabled"] = bool(
-        getattr(settings, "otel_enabled", False)
-    )
+    observability["otel_enabled"] = bool(getattr(settings, "otel_enabled", False))
 
     return {
         "generated_at": generated_at,
@@ -383,9 +344,7 @@ def metrics_snapshot(store: PersistentRunStore, settings: Any) -> dict[str, Any]
             "terminal": terminal_runs,
             "success_rate": _rate(completed, terminal_runs),
             "failure_rate": _rate(failed, terminal_runs),
-            "avg_execution_seconds": round(sum(durations) / len(durations), 3)
-            if durations
-            else None,
+            "avg_execution_seconds": round(sum(durations) / len(durations), 3) if durations else None,
             "p95_execution_seconds": _percentile(durations, 0.95),
             "resumed_runs": len(resumed_runs),
             "resume_count": sum(int(row.resume_count or 0) for row in run_rows),
@@ -393,11 +352,7 @@ def metrics_snapshot(store: PersistentRunStore, settings: Any) -> dict[str, Any]
         },
         "tools": {
             "total_calls": total_tool_calls,
-            "avg_calls_per_run": round(
-                sum(tool_counts.values()) / len(tool_counts), 3
-            )
-            if tool_counts
-            else None,
+            "avg_calls_per_run": round(sum(tool_counts.values()) / len(tool_counts), 3) if tool_counts else None,
             "by_status": tool_status,
             "failure_rate": _rate(tool_failures, total_tool_calls),
         },
@@ -417,9 +372,7 @@ def metrics_snapshot(store: PersistentRunStore, settings: Any) -> dict[str, Any]
         "checkpoints": {
             "count": checkpoint_count,
             "storage_bytes": checkpoint_bytes,
-            "avg_bytes": round(checkpoint_bytes / checkpoint_count, 1)
-            if checkpoint_count
-            else None,
+            "avg_bytes": round(checkpoint_bytes / checkpoint_count, 1) if checkpoint_count else None,
         },
         "validation": {
             "reports": report_total,
@@ -435,16 +388,8 @@ def metrics_snapshot(store: PersistentRunStore, settings: Any) -> dict[str, Any]
             "total": sum(approval_counts.values()),
             "by_state": approval_counts,
             "pending": approval_counts.get("pending", 0),
-            "avg_pending_wait_seconds": round(
-                sum(pending_waits) / len(pending_waits), 3
-            )
-            if pending_waits
-            else None,
-            "avg_decision_wait_seconds": round(
-                sum(decided_waits) / len(decided_waits), 3
-            )
-            if decided_waits
-            else None,
+            "avg_pending_wait_seconds": round(sum(pending_waits) / len(pending_waits), 3) if pending_waits else None,
+            "avg_decision_wait_seconds": round(sum(decided_waits) / len(decided_waits), 3) if decided_waits else None,
         },
         "database": {
             "backend": store.engine.url.get_backend_name(),

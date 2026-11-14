@@ -63,24 +63,17 @@ def render(spans: list[dict], *, trace_filter: str | None, show_attributes: bool
         by_trace.setdefault(trace_id, []).append(span)
 
     lines: list[str] = []
-    for trace_id, items in sorted(
-        by_trace.items(), key=lambda pair: min(i.get("start_time") or "" for i in pair[1])
-    ):
+    for trace_id, items in sorted(by_trace.items(), key=lambda pair: min(i.get("start_time") or "" for i in pair[1])):
         children: dict[str, list[dict]] = {}
         roots: list[dict] = []
         for span in items:
             parent = _id(span.get("parent_id"))
-            if parent and any(
-                _id((other.get("context") or {}).get("span_id")) == parent
-                for other in items
-            ):
+            if parent and any(_id((other.get("context") or {}).get("span_id")) == parent for other in items):
                 children.setdefault(parent, []).append(span)
             else:
                 roots.append(span)
 
-        service = ((items[0].get("resource") or {}).get("attributes") or {}).get(
-            "service.name", "unknown"
-        )
+        service = ((items[0].get("resource") or {}).get("attributes") or {}).get("service.name", "unknown")
         lines.append(f"trace {trace_id}  service={service}  spans={len(items)}")
 
         def walk(span: dict, depth: int) -> None:
@@ -96,13 +89,8 @@ def render(spans: list[dict], *, trace_filter: str | None, show_attributes: bool
                 for key, value in sorted(attributes.items()):
                     lines.append(f"{'  ' * (depth + 1)}  {key}={value}")
                 for event in span.get("events") or []:
-                    lines.append(
-                        f"{'  ' * (depth + 1)}  event={event.get('name')} "
-                        f"{event.get('attributes') or ''}"
-                    )
-            for child in sorted(
-                children.get(span_id, []), key=lambda item: item.get("start_time") or ""
-            ):
+                    lines.append(f"{'  ' * (depth + 1)}  event={event.get('name')} {event.get('attributes') or ''}")
+            for child in sorted(children.get(span_id, []), key=lambda item: item.get("start_time") or ""):
                 walk(child, depth + 1)
 
         for root in sorted(roots, key=lambda item: item.get("start_time") or ""):
@@ -120,9 +108,7 @@ def main() -> None:
         help="JSONL file written by the file exporter",
     )
     parser.add_argument("--trace", help="only show one trace id")
-    parser.add_argument(
-        "--attributes", action="store_true", help="print span attributes and events"
-    )
+    parser.add_argument("--attributes", action="store_true", help="print span attributes and events")
     args = parser.parse_args()
     path = Path(args.path)
     if not path.exists():

@@ -64,11 +64,7 @@ def test_file_exporter_writes_a_real_http_span_and_propagates_traceparent(tmp_pa
     shutdown_tracing()
     engine.dispose()
 
-    lines = [
-        json.loads(line)
-        for line in trace_file.read_text(encoding="utf-8").splitlines()
-        if line.strip()
-    ]
+    lines = [json.loads(line) for line in trace_file.read_text(encoding="utf-8").splitlines() if line.strip()]
     http_spans = [item for item in lines if item["name"] == "http.request"]
     assert http_spans, "the HTTP request span must be exported to the local file"
     exported = http_spans[0]
@@ -99,15 +95,9 @@ def test_run_span_can_continue_a_trace_captured_on_another_thread(tmp_path):
 
     force_flush_tracing()
     shutdown_tracing()
-    lines = [
-        json.loads(line)
-        for line in trace_file.read_text(encoding="utf-8").splitlines()
-        if line.strip()
-    ]
+    lines = [json.loads(line) for line in trace_file.read_text(encoding="utf-8").splitlines() if line.strip()]
     by_name = {item["name"]: item for item in lines}
-    assert by_name["agent.run"]["context"]["trace_id"] == by_name["request.submit"][
-        "context"
-    ]["trace_id"]
+    assert by_name["agent.run"]["context"]["trace_id"] == by_name["request.submit"]["context"]["trace_id"]
 
 
 def test_redaction_masks_credentials_without_hiding_token_counts():
@@ -132,9 +122,7 @@ def test_json_log_formatter_includes_trace_and_redacts_extra():
     import logging
 
     formatter = JsonFormatter()
-    record = logging.LogRecord(
-        "test", logging.INFO, __file__, 1, "event", (), None
-    )
+    record = logging.LogRecord("test", logging.INFO, __file__, 1, "event", (), None)
     record.fields = {"api_key": "secret", "run_id": "r1"}
     payload = json.loads(formatter.format(record))
     assert payload["api_key"] == "***"
@@ -216,11 +204,7 @@ def test_approval_decision_path_emits_a_span_and_marks_missing_as_error(tmp_path
     shutdown_tracing()
     engine.dispose()
 
-    spans = [
-        json.loads(line)
-        for line in trace_file.read_text(encoding="utf-8").splitlines()
-        if line.strip()
-    ]
+    spans = [json.loads(line) for line in trace_file.read_text(encoding="utf-8").splitlines() if line.strip()]
     decide = next(item for item in spans if item["name"] == "approval.decide")
     assert decide["attributes"]["approval.report_id"] == "missing-report"
     assert decide["attributes"]["approval.action"] == "approve"

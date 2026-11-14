@@ -6,7 +6,6 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
-
 MetricType = Literal["additive", "semi_additive", "ratio"]
 Additivity = Literal["additive", "semi_additive", "non_additive"]
 AggregationKind = Literal["sum", "avg", "last", "ratio", "count"]
@@ -72,4 +71,3 @@ class DataQualityReport(BaseModel):
     period_end: date | None = None
     sample_metric_values: dict[str, Decimal | float | int | None] = Field(default_factory=dict)
     event_assertions: list[EventAssertion] = Field(default_factory=list)
-

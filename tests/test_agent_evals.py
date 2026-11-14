@@ -17,7 +17,6 @@ from enterprise_business_agent.data_generator import generate_data
 from enterprise_business_agent.db import Base, make_engine, make_readonly_engine
 from enterprise_business_agent.security import AuthorizationPolicy, Principal
 
-
 CASES = Path(__file__).parent / "evals" / "agent_cases.jsonl"
 PRINCIPAL = Principal("key:eval", "analyst", frozenset({"metrics:read", "agent:run"}))
 
@@ -68,10 +67,7 @@ def test_agent_eval_corpus_is_manually_reviewable():
 def test_fake_planner_eval_separates_planning_query_and_conclusion(eval_runtime):
     runtime, registry = eval_runtime
     cases = load_agent_cases(CASES)
-    results = [
-        run_agent_case(case, runtime=runtime, registry=registry, principal=PRINCIPAL)
-        for case in cases
-    ]
+    results = [run_agent_case(case, runtime=runtime, registry=registry, principal=PRINCIPAL) for case in cases]
     for item in results:
         assert item.planning_correct, item
         assert item.query_correct, item

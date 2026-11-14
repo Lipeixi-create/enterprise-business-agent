@@ -21,9 +21,7 @@ from typing import Any, Iterator, Mapping
 _SERVICE_DEFAULT = "enterprise-business-agent"
 
 _run_id_var: ContextVar[str | None] = ContextVar("eba_otel_run_id", default=None)
-_tool_call_id_var: ContextVar[str | None] = ContextVar(
-    "eba_otel_tool_call_id", default=None
-)
+_tool_call_id_var: ContextVar[str | None] = ContextVar("eba_otel_tool_call_id", default=None)
 
 
 @dataclass
@@ -206,9 +204,7 @@ def _build_exporter(kind: str, endpoint: str | None, trace_file: str) -> tuple[A
                 OTLPSpanExporter,
             )
         except ImportError as exc:  # pragma: no cover - optional dependency
-            raise ValueError(
-                "opentelemetry-exporter-otlp-proto-http is not installed"
-            ) from exc
+            raise ValueError("opentelemetry-exporter-otlp-proto-http is not installed") from exc
         target = endpoint.rstrip("/")
         if not target.endswith("/v1/traces"):
             target = f"{target}/v1/traces"
@@ -276,9 +272,7 @@ def configure_tracing(settings: Any, *, exporter: Any = None) -> TracingStatus:
         if _status.initialized or _status.init_error is not None:
             return _status
         enabled = bool(getattr(settings, "otel_enabled", False))
-        service_name = str(
-            getattr(settings, "otel_service_name", _SERVICE_DEFAULT) or _SERVICE_DEFAULT
-        )
+        service_name = str(getattr(settings, "otel_service_name", _SERVICE_DEFAULT) or _SERVICE_DEFAULT)
         kind = str(getattr(settings, "otel_exporter", "otlp") or "otlp").strip().lower()
         endpoint = (
             getattr(settings, "otel_exporter_endpoint", None)
@@ -286,8 +280,7 @@ def configure_tracing(settings: Any, *, exporter: Any = None) -> TracingStatus:
             or _env("OTEL_EXPORTER_OTLP_ENDPOINT")
         )
         trace_file = str(
-            getattr(settings, "otel_trace_file", "data/traces/eba-spans.jsonl")
-            or "data/traces/eba-spans.jsonl"
+            getattr(settings, "otel_trace_file", "data/traces/eba-spans.jsonl") or "data/traces/eba-spans.jsonl"
         )
         sample_ratio = float(getattr(settings, "otel_sample_ratio", 1.0))
         if not enabled:
@@ -320,7 +313,15 @@ def configure_tracing(settings: Any, *, exporter: Any = None) -> TracingStatus:
             exporter_target=(
                 "supplied exporter"
                 if exporter is not None
-                else (endpoint if kind == "otlp" else trace_file if kind == "file" else "stdout" if kind == "console" else None)
+                else (
+                    endpoint
+                    if kind == "otlp"
+                    else trace_file
+                    if kind == "file"
+                    else "stdout"
+                    if kind == "console"
+                    else None
+                )
             ),
             note="",
         )
@@ -334,10 +335,7 @@ def configure_tracing(settings: Any, *, exporter: Any = None) -> TracingStatus:
                 exporter, target = _build_exporter(kind, endpoint, trace_file)
             except Exception as exc:  # noqa: BLE001 - tracing must never break the app
                 _status.init_error = str(exc)
-                _status.note = (
-                    "exporter construction failed; the application continues "
-                    "without tracing."
-                )
+                _status.note = "exporter construction failed; the application continues without tracing."
                 return _status
             _status.exporter_configured = True
             _status.exporter_target = target
@@ -346,16 +344,12 @@ def configure_tracing(settings: Any, *, exporter: Any = None) -> TracingStatus:
 
         try:
             from opentelemetry.sdk.trace.sampling import (
+                ALWAYS_ON,
                 ParentBased,
                 TraceIdRatioBased,
-                ALWAYS_ON,
             )
 
-            sampler = (
-                ParentBased(TraceIdRatioBased(sample_ratio))
-                if sample_ratio < 1.0
-                else ALWAYS_ON
-            )
+            sampler = ParentBased(TraceIdRatioBased(sample_ratio)) if sample_ratio < 1.0 else ALWAYS_ON
             resource = Resource.create(
                 {
                     "service.name": service_name,
@@ -437,11 +431,7 @@ def span(
     if tracer is None:
         yield None
         return
-    payload = {
-        key.replace("__", "."): value
-        for key, value in attributes.items()
-        if value is not None
-    }
+    payload = {key.replace("__", "."): value for key, value in attributes.items() if value is not None}
     run_id = _run_id_var.get()
     tool_call_id = _tool_call_id_var.get()
     if run_id:

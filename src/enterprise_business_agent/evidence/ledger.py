@@ -40,9 +40,7 @@ class EvidenceLedger:
         results = self.record_many([record])
         return results[0]
 
-    def record_many(
-        self, records: Iterable[EvidenceRecord]
-    ) -> list[tuple[EvidenceRecord, bool]]:
+    def record_many(self, records: Iterable[EvidenceRecord]) -> list[tuple[EvidenceRecord, bool]]:
         items = list(records)
         if not items:
             return []
@@ -60,9 +58,7 @@ class EvidenceLedger:
                     continue
                 try:
                     with connection.begin_nested():
-                        connection.execute(
-                            insert(EVIDENCE_TABLE).values(**self._record_to_row(record))
-                        )
+                        connection.execute(insert(EVIDENCE_TABLE).values(**self._record_to_row(record)))
                     outcomes.append((record, True))
                 except IntegrityError:
                     # A concurrent writer inserted the same fingerprint first.
@@ -100,9 +96,7 @@ class EvidenceLedger:
     def count(self, run_id: str) -> int:
         with self._lock, self.engine.connect() as connection:
             rows = connection.execute(
-                select(EVIDENCE_TABLE.c.evidence_id).where(
-                    EVIDENCE_TABLE.c.run_id == run_id
-                )
+                select(EVIDENCE_TABLE.c.evidence_id).where(EVIDENCE_TABLE.c.run_id == run_id)
             ).all()
         return len(rows)
 

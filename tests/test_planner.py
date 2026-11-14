@@ -42,9 +42,7 @@ def test_east_china_sales_mom(planner):
     assert intent.metric == "sales_amount"
     assert intent.comparison_kind == "mom"
     assert intent.period == date(2025, 12, 1)
-    assert [(item.dimension, item.operator, item.value) for item in intent.filters] == [
-        ("region", "eq", "EC")
-    ]
+    assert [(item.dimension, item.operator, item.value) for item in intent.filters] == [("region", "eq", "EC")]
 
 
 def test_roi_top_n_uses_campaign_dimension(planner):

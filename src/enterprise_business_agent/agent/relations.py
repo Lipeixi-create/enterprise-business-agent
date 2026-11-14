@@ -149,18 +149,10 @@ _RANK_RE = re.compile(
     r"(?:排名|位列|排第|第)\s*(?:第)?\s*([0-9]{1,3}|[一二三四五六七八九十])\s*(?:名|位)?"
     r"(?!\s*(?:季度|月|年|周|日|天|期|度))"
 )
-_RANK_COMPARISON_PREFIX_RE = re.compile(
-    r"(?:与|和|跟|同|比|较|相比|对比|相对于)\s*$"
-)
-_RANK_COMPARISON_SUFFIX_RE = re.compile(
-    r"^\s*(?:相差|差距|相比|对比|之差|相减|低|高|少|多)"
-)
-_RANK_RANGE_PREFIX_RE = re.compile(
-    r"(?:至|到|~|～|—|–|-)\s*(?:第)?\s*$"
-)
-_RANK_RANGE_SUFFIX_RE = re.compile(
-    r"^\s*(?:至|到|~|～|—|–|-)\s*(?:第)?\s*(?:[0-9]{1,3}|[一二三四五六七八九十])"
-)
+_RANK_COMPARISON_PREFIX_RE = re.compile(r"(?:与|和|跟|同|比|较|相比|对比|相对于)\s*$")
+_RANK_COMPARISON_SUFFIX_RE = re.compile(r"^\s*(?:相差|差距|相比|对比|之差|相减|低|高|少|多)")
+_RANK_RANGE_PREFIX_RE = re.compile(r"(?:至|到|~|～|—|–|-)\s*(?:第)?\s*$")
+_RANK_RANGE_SUFFIX_RE = re.compile(r"^\s*(?:至|到|~|～|—|–|-)\s*(?:第)?\s*(?:[0-9]{1,3}|[一二三四五六七八九十])")
 # "第一名与第四名相差 0.007" compares two ranks; it does not claim the
 # sentence's subject is either rank.
 _RANK_PAIR_COMPARISON_RE = re.compile(
@@ -168,18 +160,14 @@ _RANK_PAIR_COMPARISON_RE = re.compile(
     r"\s*(?:名|位)\s*(?:相差|差距|相比|对比|之差|相减|低|高|少|多|更)"
 )
 # "按排名列第二" states the ranked subject; the member is before the idiom.
-_RANK_LIST_VERB_RE = re.compile(
-    r"(?:按|根据|依据|在)?(?:排名|排序|名次)(?:中)?\s*(?:列|排|位|居)\s*$"
-)
+_RANK_LIST_VERB_RE = re.compile(r"(?:按|根据|依据|在)?(?:排名|排序|名次)(?:中)?\s*(?:列|排|位|居)\s*$")
 _RANKING_CUE_RE = re.compile(
     r"(?:排名|排序|名次|从高到低|从低到高|由高到低|由低到高|依次|顺次|"
     r"高于|低于|大于|小于|优于|劣于|领先|落后|超过|"
     r"第\s*[一二三四五六七八九十0-9]+\s*名|top\s*\d|bottom\s*\d)",
     re.IGNORECASE,
 )
-_FIELD_COMPARISON_PREFIX_RE = re.compile(
-    r"(?:低于|高于|大于|小于|少于|多于|超过|不及|相当于|不足)\s*$"
-)
+_FIELD_COMPARISON_PREFIX_RE = re.compile(r"(?:低于|高于|大于|小于|少于|多于|超过|不及|相当于|不足)\s*$")
 _NUMBER_RE = re.compile(r"-?\d+(?:,\d{3})*(?:\.\d+)?")
 _MEMBER_CODE_RE = re.compile(r"\b[A-Z]{1,4}\d{2,8}\b")
 _SEGMENT_RE = re.compile(r"[。！？\n；;]+")
@@ -362,13 +350,15 @@ def _dataset_from_message(message: Any) -> _Dataset | None:
             number = _decimal(raw.get(field))
             if number is not None:
                 values[field] = number
-        rows.append(
-            _Row(_row_member(raw), _row_label(raw), values, _row_period(raw))
-        )
+        rows.append(_Row(_row_member(raw), _row_label(raw), values, _row_period(raw)))
     if not rows:
         return None
     primary = next(
-        (field for field in ("value", "current_value", "contribution", "absolute_change") if any(field in row.values for row in rows)),
+        (
+            field
+            for field in ("value", "current_value", "contribution", "absolute_change")
+            if any(field in row.values for row in rows)
+        ),
         "value",
     )
     arguments = getattr(message, "arguments", None) or {}
@@ -464,11 +454,7 @@ def _mentions(text: str, dataset: _Dataset) -> list[tuple[int, int, str]]:
                 continue
             spans: list[tuple[int, int]] = []
             if name.isascii():
-                pattern = re.compile(
-                    r"(?<![A-Za-z0-9_])"
-                    + re.escape(name)
-                    + r"(?![A-Za-z0-9_])"
-                )
+                pattern = re.compile(r"(?<![A-Za-z0-9_])" + re.escape(name) + r"(?![A-Za-z0-9_])")
                 spans = [match.span() for match in pattern.finditer(text)]
             else:
                 start = 0
@@ -483,10 +469,7 @@ def _mentions(text: str, dataset: _Dataset) -> list[tuple[int, int, str]]:
     found.sort(key=lambda item: (item[0], -(item[1] - item[0])))
     result: list[tuple[int, int, str]] = []
     for start, end, member in found:
-        contained = any(
-            start >= kept_start and end <= kept_end
-            for kept_start, kept_end, _ in result
-        )
+        contained = any(start >= kept_start and end <= kept_end for kept_start, kept_end, _ in result)
         if contained:
             continue
         result.append((start, end, member))
@@ -513,20 +496,12 @@ _PER_MEMBER_CLAIM_RE = re.compile(
 def _period_from_text(text: str) -> str | None:
     """A single month named by the claim, if the wording is unambiguous."""
 
-    iso = {
-        f"{int(year):04d}-{int(month):02d}"
-        for year, month in _PERIOD_ISO_RE.findall(text)
-        if 1 <= int(month) <= 12
-    }
+    iso = {f"{int(year):04d}-{int(month):02d}" for year, month in _PERIOD_ISO_RE.findall(text) if 1 <= int(month) <= 12}
     if len(iso) == 1:
         return next(iter(iso))
     if iso:
         return None
-    months = {
-        int(month)
-        for month in _PERIOD_MONTH_RE.findall(text)
-        if 1 <= int(month) <= 12
-    }
+    months = {int(month) for month in _PERIOD_MONTH_RE.findall(text) if 1 <= int(month) <= 12}
     return f"month:{next(iter(months))}" if len(months) == 1 else None
 
 
@@ -547,9 +522,7 @@ def _is_per_member_claim(text: str, marker: int) -> bool:
     return bool(_PER_MEMBER_CLAIM_RE.search(head[cut + 1 :]))
 
 
-def _extremum_value(
-    values: list[Decimal], direction: str, magnitude: bool
-) -> Decimal | None:
+def _extremum_value(values: list[Decimal], direction: str, magnitude: bool) -> Decimal | None:
     if not values:
         return None
     if magnitude:
@@ -584,11 +557,7 @@ def _connected(text: str, hits: list[tuple[int, int, str]]) -> bool:
             continue
         words = re.findall(r"[A-Za-z']+", between)
         residue = re.sub(r"[A-Za-z'\s]+", "", between)
-        if (
-            words
-            and residue == ""
-            and all(word.lower() in _ENGLISH_FILLER for word in words)
-        ):
+        if words and residue == "" and all(word.lower() in _ENGLISH_FILLER for word in words):
             continue
         return False
     return True
@@ -678,17 +647,11 @@ def _claim_members(text: str, marker: int, dataset: _Dataset) -> list[str]:
     suffix: list[str] = []
     if body is not None:
         for term in _CONTRAST_TERMS:
-            index = (
-                body.lower().find(term.lower())
-                if term.isascii()
-                else body.find(term)
-            )
+            index = body.lower().find(term.lower()) if term.isascii() else body.find(term)
             if index >= 0:
                 body = body[:index]
         suffix_hits = _mentions(body, dataset)
-        suffix_hits = [
-            hit for hit in suffix_hits if not _member_is_negated(body, hit)
-        ]
+        suffix_hits = [hit for hit in suffix_hits if not _member_is_negated(body, hit)]
         suffix = _ordered_members(suffix_hits)
         # "最高的是 A（a），最低的是 B（b）" is two claims in one sentence: the
         # members after the comma are not part of the max claim. Only names
@@ -720,15 +683,11 @@ def _nearest_member(text: str, marker: int, dataset: _Dataset) -> str | None:
     preceding = [
         item
         for item in hits
-        if item[1] <= marker
-        and marker - item[1] <= 20
-        and not _CLAUSE_BREAK_RE.search(text[item[1] : marker])
+        if item[1] <= marker and marker - item[1] <= 20 and not _CLAUSE_BREAK_RE.search(text[item[1] : marker])
     ]
     if preceding:
         return max(preceding, key=lambda item: item[1])[2]
-    index, end, member = min(
-        hits, key=lambda item: (abs(item[0] - marker), -(item[1] - item[0]))
-    )
+    index, end, member = min(hits, key=lambda item: (abs(item[0] - marker), -(item[1] - item[0])))
     return member
 
 
@@ -776,9 +735,7 @@ def _field_for(text: str, marker: int, dataset: _Dataset) -> str:
     # A nearby metric name ("ROI 最低") scopes the comparison to the primary
     # value; generic column hints ("营销投入") are supporting detail and must
     # not override it just because they appear in the same paragraph.
-    if metric_distance is not None and (
-        best is None or metric_distance <= best[0][0]
-    ):
+    if metric_distance is not None and (best is None or metric_distance <= best[0][0]):
         return dataset.primary_field
     if best is not None:
         return best[1]
@@ -786,10 +743,7 @@ def _field_for(text: str, marker: int, dataset: _Dataset) -> str:
         return dataset.primary_field
     if dataset.metric and dataset.metric in text:
         return dataset.primary_field
-    if any(
-        (hint in lower if hint.isascii() else hint in text)
-        for hint in _VALUE_HINTS
-    ):
+    if any((hint in lower if hint.isascii() else hint in text) for hint in _VALUE_HINTS):
         return dataset.primary_field
     return dataset.primary_field
 
@@ -827,9 +781,7 @@ def _issue(
     }
 
 
-def _subset_scope_members(
-    text: str, marker: int, dataset: _Dataset
-) -> set[str]:
+def _subset_scope_members(text: str, marker: int, dataset: _Dataset) -> set[str]:
     """Members a "其中 … 最小" claim is scoped to.
 
     ``SC、NC、WC 三个区域…其中 SC 数值最小`` compares SC only against the
@@ -841,16 +793,11 @@ def _subset_scope_members(
     if index < 0:
         return set()
     prefix = head[:index]
-    starts = [
-        prefix.rfind(token)
-        for token in ("其余", "其他", "其它", "另外", "剩下", "余下")
-    ]
+    starts = [prefix.rfind(token) for token in ("其余", "其他", "其它", "另外", "剩下", "余下")]
     latest = max(starts)
     if latest >= 0:
         token_len = next(
-            len(token)
-            for token in ("其余", "其他", "其它", "另外", "剩下", "余下")
-            if prefix.rfind(token) == latest
+            len(token) for token in ("其余", "其他", "其它", "另外", "剩下", "余下") if prefix.rfind(token) == latest
         )
         prefix = prefix[latest + token_len :]
     members = set(_ordered_members(_mentions(prefix, dataset)))
@@ -877,11 +824,7 @@ def _check_superlative(
         return []
     scope = _subset_scope_members(segment, marker_index, dataset)
     if scope:
-        scoped_values = [
-            (row, value)
-            for row, value in values
-            if (row.member or row.label) in scope
-        ]
+        scoped_values = [(row, value) for row, value in values if (row.member or row.label) in scope]
         if len(scoped_values) >= 2:
             values = scoped_values
     effective_direction = direction
@@ -911,23 +854,13 @@ def _check_superlative(
         # "降幅最小" describes the smallest drop by magnitude, not the most
         # negative signed contribution. Compare absolute values so a signed
         # contribution (-10385249) is not treated as larger than -12159846.
-        extremum_key = (max if effective_direction == "max" else min)(
-            abs(value) for _, value in values
-        )
-        winners = [
-            row.member for row, value in values if abs(value) == extremum_key
-        ]
-        winner_value = next(
-            (value for _, value in values if abs(value) == extremum_key), None
-        )
+        extremum_key = (max if effective_direction == "max" else min)(abs(value) for _, value in values)
+        winners = [row.member for row, value in values if abs(value) == extremum_key]
+        winner_value = next((value for _, value in values if abs(value) == extremum_key), None)
     else:
-        extremum_key = (max if effective_direction == "max" else min)(
-            value for _, value in values
-        )
+        extremum_key = (max if effective_direction == "max" else min)(value for _, value in values)
         winners = [row.member for row, value in values if value == extremum_key]
-        winner_value = next(
-            (value for _, value in values if value == extremum_key), None
-        )
+        winner_value = next((value for _, value in values if value == extremum_key), None)
     extremum = winner_value
     actual_member = winners[0] if winners else None
     label = "最大" if effective_direction == "max" else "最小"
@@ -935,8 +868,7 @@ def _check_superlative(
 
     issues: list[dict[str, Any]] = []
     if dataset.truncated and any(
-        (marker in segment.lower() if marker.isascii() else marker in segment)
-        for marker in _GLOBAL_MARKERS
+        (marker in segment.lower() if marker.isascii() else marker in segment) for marker in _GLOBAL_MARKERS
     ):
         issues.append(
             _issue(
@@ -951,11 +883,7 @@ def _check_superlative(
         )
 
     for member in members:
-        member_rows = [
-            row
-            for row in dataset.rows
-            if member in {row.member, row.label} and field in row.values
-        ]
+        member_rows = [row for row in dataset.rows if member in {row.member, row.label} and field in row.values]
         if not member_rows:
             continue
         member_scoped = False
@@ -977,19 +905,13 @@ def _check_superlative(
                     effective_direction,
                     magnitude,
                 )
-                checks = [
-                    (row.values[field], reference, member) for row in selected
-                ]
+                checks = [(row.values[field], reference, member) for row in selected]
             else:
-                checks = [
-                    (row.values[field], extremum, actual_member) for row in selected
-                ]
+                checks = [(row.values[field], extremum, actual_member) for row in selected]
         for claimed, reference, reference_member in checks:
             if reference is None:
                 continue
-            equal = (
-                abs(claimed) == abs(reference) if magnitude else claimed == reference
-            )
+            equal = abs(claimed) == abs(reference) if magnitude else claimed == reference
             if equal:
                 continue
             if member_scoped:
@@ -1022,15 +944,15 @@ def _check_superlative(
                 )
             )
 
-    if not issues and len(winners) > 1 and any(
-        (marker in segment.lower() if marker.isascii() else marker in segment)
-        for marker in _UNIQUE_MARKERS
+    if (
+        not issues
+        and len(winners) > 1
+        and any((marker in segment.lower() if marker.isascii() else marker in segment) for marker in _UNIQUE_MARKERS)
     ):
         issues.append(
             _issue(
                 "unique_claim_violated",
-                f"{members[0]} 被描述为唯一{label}值，"
-                f"但{len(winners)} 个成员同为 {format(extremum, 'f')}",
+                f"{members[0]} 被描述为唯一{label}值，但{len(winners)} 个成员同为 {format(extremum, 'f')}",
                 dataset=dataset,
                 member=members[0],
                 field=field,
@@ -1042,9 +964,7 @@ def _check_superlative(
     return issues
 
 
-def _check_count(
-    segment: str, dataset: _Dataset
-) -> list[dict[str, Any]]:
+def _check_count(segment: str, dataset: _Dataset) -> list[dict[str, Any]]:
     match = _COUNT_RE.search(segment)
     if match is None:
         return []
@@ -1062,9 +982,7 @@ def _check_count(
     ]
 
 
-def _check_rank(
-    segment: str, dataset: _Dataset, match: re.Match[str] | None = None
-) -> list[dict[str, Any]]:
+def _check_rank(segment: str, dataset: _Dataset, match: re.Match[str] | None = None) -> list[dict[str, Any]]:
     if match is None:
         match = _RANK_RE.search(segment)
     if match is None:
@@ -1075,9 +993,7 @@ def _check_rank(
         # "EC 与第一名相差 0.007266" compares against rank 1; it does not
         # claim that EC is rank 1.
         return []
-    if _RANK_RANGE_PREFIX_RE.search(segment[: match.start()]) or (
-        _RANK_RANGE_SUFFIX_RE.match(segment[match.end() :])
-    ):
+    if _RANK_RANGE_PREFIX_RE.search(segment[: match.start()]) or (_RANK_RANGE_SUFFIX_RE.match(segment[match.end() :])):
         # "第 2 至第 5 名" names a range, not a single rank.
         return []
     if _RANK_PAIR_COMPARISON_RE.match(segment[match.end() :]):
@@ -1088,9 +1004,7 @@ def _check_rank(
     if rank is None:
         return []
     member = None
-    following = [
-        item for item in _mentions(segment, dataset) if item[0] >= match.end()
-    ]
+    following = [item for item in _mentions(segment, dataset) if item[0] >= match.end()]
     if following:
         nearest = min(following, key=lambda item: item[0])
         filler = segment[match.end() : nearest[0]]
@@ -1102,11 +1016,7 @@ def _check_rank(
     if member is None and segment[match.end() : match.end() + 1] in _ORDINAL_ADJECTIVES:
         # "第二高的华南" names the member right after the ordinal; a comma
         # ("华南缺货率第二高，西部...") keeps the preceding member as subject.
-        following = [
-            item
-            for item in _mentions(segment, dataset)
-            if item[0] >= match.end() + 1
-        ]
+        following = [item for item in _mentions(segment, dataset) if item[0] >= match.end() + 1]
         if following:
             nearest = min(following, key=lambda item: item[0])
             filler = segment[match.end() + 1 : nearest[0]]
@@ -1115,18 +1025,14 @@ def _check_rank(
     if member is None and _RANK_LIST_VERB_RE.search(segment[: match.start()]):
         # "SC 数值最小，按排名列第二" ranks the preceding subject; the next
         # clause may mention other members that are farther from the idiom.
-        preceding = [
-            item for item in _mentions(segment, dataset) if item[1] <= match.start()
-        ]
+        preceding = [item for item in _mentions(segment, dataset) if item[1] <= match.start()]
         if preceding:
             member = max(preceding, key=lambda item: item[1])[2]
     if member is None:
         member = _nearest_member(segment, match.start(), dataset)
     if member is None:
         return []
-    row = next(
-        (item for item in dataset.rows if member in {item.member, item.label}), None
-    )
+    row = next((item for item in dataset.rows if member in {item.member, item.label}), None)
     if row is None:
         return []
     if "rank" in row.values and int(row.values["rank"]) != rank:
@@ -1152,9 +1058,7 @@ def _check_top_n_order(dataset: _Dataset) -> list[dict[str, Any]]:
         return []
     ascending = bool(dataset.ascending)
     ordered = list(values)
-    expected = sorted(
-        ordered, key=lambda value: value, reverse=not ascending
-    )
+    expected = sorted(ordered, key=lambda value: value, reverse=not ascending)
     issues: list[dict[str, Any]] = []
     if ordered != expected:
         issues.append(
@@ -1180,9 +1084,7 @@ def _check_top_n_order(dataset: _Dataset) -> list[dict[str, Any]]:
     return issues
 
 
-def _answer_member_order(
-    answer: str, dataset: _Dataset
-) -> list[str]:
+def _answer_member_order(answer: str, dataset: _Dataset) -> list[str]:
     found: list[tuple[int, str]] = []
     for row in dataset.rows:
         for name in (row.member, row.label):
@@ -1234,11 +1136,7 @@ def _check_answer_order(answer: str, dataset: _Dataset) -> list[dict[str, Any]]:
     # not asserting the result's order.
     if not _RANKING_CUE_RE.search(answer):
         return []
-    values = {
-        row.member: row.values.get("value")
-        for row in dataset.rows
-        if row.member is not None
-    }
+    values = {row.member: row.values.get("value") for row in dataset.rows if row.member is not None}
     if any(value is None for value in values.values()):
         return []
     if len(set(values.values())) != len(values):
@@ -1247,9 +1145,7 @@ def _check_answer_order(answer: str, dataset: _Dataset) -> list[dict[str, Any]]:
     # A multi-metric answer may put another metric's list first. Member order
     # only counts from the point where this dataset's metric is named.
     metric_positions = [
-        answer.find(token)
-        for token in (dataset.label, dataset.metric)
-        if token and answer.find(token) >= 0
+        answer.find(token) for token in (dataset.label, dataset.metric) if token and answer.find(token) >= 0
     ]
     if metric_positions:
         answer = answer[min(metric_positions) :]
@@ -1299,10 +1195,7 @@ _ENGLISH_TRUNCATED_ABSENCE_RE = re.compile(
 
 
 def _names_dataset(text: str, dataset: _Dataset) -> bool:
-    return bool(
-        (dataset.label and dataset.label in text)
-        or (dataset.metric and dataset.metric in text)
-    )
+    return bool((dataset.label and dataset.label in text) or (dataset.metric and dataset.metric in text))
 
 
 def _dataset_distance(text: str, dataset: _Dataset, marker: int) -> int:
@@ -1357,9 +1250,7 @@ def _marker_dataset(
         return active
     if len(datasets) == 1:
         return datasets[0]
-    member_datasets = [
-        dataset for dataset in datasets if _mentions(text, dataset)
-    ]
+    member_datasets = [dataset for dataset in datasets if _mentions(text, dataset)]
     if len(member_datasets) == 1:
         return member_datasets[0]
     return None
@@ -1380,9 +1271,7 @@ def _scoped_answer(answer: str, dataset: _Dataset, datasets: list[_Dataset]) -> 
     return answer if len(datasets) == 1 else ""
 
 
-def _truncated_absence_issues(
-    answer: str, messages: list[Any]
-) -> list[dict[str, Any]]:
+def _truncated_absence_issues(answer: str, messages: list[Any]) -> list[dict[str, Any]]:
     """Flag absence claims about rows a truncated result never showed."""
 
     truncated: list[tuple[Any, int, int, Mapping[str, Any]]] = []
@@ -1390,17 +1279,9 @@ def _truncated_absence_issues(
         view = getattr(message, "visible_data", None)
         if not isinstance(view, Mapping):
             continue
-        row_count = int(
-            getattr(message, "row_count", 0) or view.get("row_count") or 0
-        )
-        displayed = int(
-            getattr(message, "displayed_count", 0)
-            or view.get("displayed_count")
-            or 0
-        )
-        is_truncated = bool(
-            getattr(message, "truncated", False) or view.get("truncated")
-        )
+        row_count = int(getattr(message, "row_count", 0) or view.get("row_count") or 0)
+        displayed = int(getattr(message, "displayed_count", 0) or view.get("displayed_count") or 0)
+        is_truncated = bool(getattr(message, "truncated", False) or view.get("truncated"))
         if is_truncated and row_count > displayed:
             truncated.append((message, row_count, displayed, view))
     if not truncated or not answer:
@@ -1408,10 +1289,7 @@ def _truncated_absence_issues(
 
     issues: list[dict[str, Any]] = []
     for segment in _SEGMENT_RE.split(answer):
-        if not (
-            _TRUNCATED_ABSENCE_RE.search(segment)
-            or _ENGLISH_TRUNCATED_ABSENCE_RE.search(segment)
-        ):
+        if not (_TRUNCATED_ABSENCE_RE.search(segment) or _ENGLISH_TRUNCATED_ABSENCE_RE.search(segment)):
             continue
         for message, row_count, displayed, view in truncated:
             dataset = _Dataset(
@@ -1428,10 +1306,7 @@ def _truncated_absence_issues(
             issues.append(
                 _issue(
                     "truncated_absence_overreach",
-                    (
-                        f"结果被截断（已展示 {displayed}/{row_count} 行），"
-                        "不能断言未展示行中不存在该结论"
-                    ),
+                    (f"结果被截断（已展示 {displayed}/{row_count} 行），不能断言未展示行中不存在该结论"),
                     dataset=dataset,
                 )
             )
@@ -1471,11 +1346,7 @@ def relation_issues(answer: str, messages: Iterable[Any]) -> list[dict[str, Any]
 
     for dataset in datasets:
         issues.extend(_check_top_n_order(dataset))
-        issues.extend(
-            _check_answer_order(
-                _scoped_answer(answer, dataset, datasets), dataset
-            )
-        )
+        issues.extend(_check_answer_order(_scoped_answer(answer, dataset, datasets), dataset))
 
     active: _Dataset | None = None
     for segment in _SEGMENT_RE.split(answer):
@@ -1502,20 +1373,12 @@ def relation_issues(answer: str, messages: Iterable[Any]) -> list[dict[str, Any]
         if max_index is not None:
             dataset = _marker_dataset(text, max_index, datasets, active)
             if dataset is not None:
-                issues.extend(
-                    _check_superlative(
-                        text, dataset, direction="max", marker_index=max_index
-                    )
-                )
+                issues.extend(_check_superlative(text, dataset, direction="max", marker_index=max_index))
         min_index = _first_marker_index(masked, _SUPERLATIVE_MIN)
         if min_index is not None:
             dataset = _marker_dataset(text, min_index, datasets, active)
             if dataset is not None:
-                issues.extend(
-                    _check_superlative(
-                        text, dataset, direction="min", marker_index=min_index
-                    )
-                )
+                issues.extend(_check_superlative(text, dataset, direction="min", marker_index=min_index))
     return _unique_issues(issues)
 
 

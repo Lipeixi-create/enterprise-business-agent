@@ -4,12 +4,17 @@ import statistics
 from collections import defaultdict
 from dataclasses import dataclass
 from datetime import date, datetime
-from decimal import Decimal, ROUND_HALF_UP
+from decimal import ROUND_HALF_UP, Decimal
 from typing import Any
 
 from sqlalchemy.orm import Session
 
-from . import contracts
+from enterprise_business_agent.analysis.contracts import TopNRequest
+
+from ..metric_resolver import MetricResolution, MetricResolver
+from ..query_compiler import CompiledQuery, QueryCompileError, QueryCompiler
+from ..schemas import MetricDefinition
+from .comparison import same_month_last_year
 from .contracts import (
     AnalysisStatus,
     AnomalyPoint,
@@ -31,21 +36,15 @@ from .contracts import (
     TrendResponse,
 )
 from .time_ranges import (
-    bucket_label,
     bucket_key,
+    bucket_label,
     month_sequence,
     parse_period_value,
     previous_quarter_start,
     quarter_label,
     quarter_months,
-    quarter_start,
     shift_month,
 )
-from .comparison import same_month_last_year
-from ..metric_resolver import MetricResolution, MetricResolver
-from ..query_compiler import CompiledQuery, QueryCompileError, QueryCompiler
-from ..schemas import MetricDefinition
-
 
 ZERO = Decimal("0")
 RATE_QUANTUM = Decimal("0.000001")
@@ -121,14 +120,10 @@ class AnalysisEngine:
             with span(
                 "db.query",
                 db__system=self.session.get_bind().dialect.name,
-                db__tables=",".join(
-                    sorted({metric.source_table, *compiled.joined_tables})
-                ),
+                db__tables=",".join(sorted({metric.source_table, *compiled.joined_tables})),
                 db__path="semantic_session",
             ):
-                row_source = self.session.execute(
-                    compiled.statement, compiled.params
-                ).mappings()
+                row_source = self.session.execute(compiled.statement, compiled.params).mappings()
         else:
             from ..security.errors import ExecutionFailure, GuardRejection
             from ..security.semantic_guard import SemanticQueryGuard
@@ -142,9 +137,7 @@ class AnalysisEngine:
                 execution = self.query_executor.execute_select(trusted)
             except (GuardRejection, ExecutionFailure) as exc:
                 code = getattr(getattr(exc, "code", None), "value", "query_rejected")
-                raise QueryCompileError(
-                    f"secure semantic query boundary rejected the request ({code})"
-                ) from exc
+                raise QueryCompileError(f"secure semantic query boundary rejected the request ({code})") from exc
             if execution.truncated:
                 raise QueryCompileError("query result exceeded the configured row limit")
             row_source = execution.rows
@@ -161,9 +154,7 @@ class AnalysisEngine:
                 period = parse_period_value(period_value)
             dimensions_map = {name: str(row[name]) for name in compiled.dimensions}
             labels = {
-                name: str(row[f"{name}__label"])
-                for name in compiled.dimensions
-                if f"{name}__label" in row.keys()
+                name: str(row[f"{name}__label"]) for name in compiled.dimensions if f"{name}__label" in row.keys()
             }
             rows.append(
                 _Row(
@@ -205,8 +196,12 @@ class AnalysisEngine:
         rows_by_month = {row.period: row for row in rows}
         missing = [month for month in months if month not in rows_by_month]
         if missing:
-            return None, None, None, AnalysisStatus.INSUFFICIENT_DATA, "missing months: " + ", ".join(
-                item.isoformat() for item in missing
+            return (
+                None,
+                None,
+                None,
+                AnalysisStatus.INSUFFICIENT_DATA,
+                "missing months: " + ", ".join(item.isoformat() for item in missing),
             )
         ordered = [rows_by_month[month] for month in months]
         effective = self._effective_aggregation(metric, aggregation)
@@ -226,7 +221,13 @@ class AnalysisEngine:
                 denominator = sum(denominators, ZERO)
             value = self._ratio_value(metric, numerator, denominator)
             status = AnalysisStatus.OK if value is not None else AnalysisStatus.NOT_CALCULABLE
-            return _value(value), _value(numerator), _value(denominator), status, None if value is not None else "denominator is zero"
+            return (
+                _value(value),
+                _value(numerator),
+                _value(denominator),
+                status,
+                None if value is not None else "denominator is zero",
+            )
 
         if effective == "last":
             row = ordered[-1]
@@ -246,7 +247,9 @@ class AnalysisEngine:
         return _value(aggregate), _value(aggregate), None, AnalysisStatus.OK, None
 
     @staticmethod
-    def _point_status(metric: MetricDefinition, value: Decimal | None, denominator: Decimal | None) -> tuple[AnalysisStatus, str | None]:
+    def _point_status(
+        metric: MetricDefinition, value: Decimal | None, denominator: Decimal | None
+    ) -> tuple[AnalysisStatus, str | None]:
         if value is not None:
             return AnalysisStatus.OK, None
         if metric.metric_type == "ratio" and (denominator is None or denominator == 0):
@@ -270,9 +273,7 @@ class AnalysisEngine:
         for (key, _), group in sorted(groups.items(), key=lambda item: str(item[0][0])):
             ordered = sorted(group, key=lambda row: row.period)
             months = sorted({row.period for row in ordered})
-            value, numerator, denominator, status, reason = self._aggregate_rows(
-                metric, ordered, months, aggregation
-            )
+            value, numerator, denominator, status, reason = self._aggregate_rows(metric, ordered, months, aggregation)
             first = ordered[0]
             points.append(
                 MetricPoint(
@@ -567,7 +568,11 @@ class AnalysisEngine:
         metric, resolution = self._resolve(request.metric)
         dimension = self.dimension_registry.resolve(request.dimension)
         if metric is None or dimension is None or dimension.kind == "time" or dimension.name not in metric.dimensions:
-            reason = resolution.message if metric is None else f"dimension {request.dimension!r} is not supported by {request.metric}"
+            reason = (
+                resolution.message
+                if metric is None
+                else f"dimension {request.dimension!r} is not supported by {request.metric}"
+            )
             return TopNResponse(
                 status=self._resolution_status(resolution) if metric is None else AnalysisStatus.INVALID_REQUEST,
                 metric=request.metric,
@@ -604,7 +609,14 @@ class AnalysisEngine:
                 end=request.end,
                 reason="requested time range is incomplete",
             )
-        points = self._rollup(metric, rows, "total", request.start, request.end, metric.allowed_aggregations[-1] if metric.metric_type == "ratio" else None)
+        points = self._rollup(
+            metric,
+            rows,
+            "total",
+            request.start,
+            request.end,
+            metric.allowed_aggregations[-1] if metric.metric_type == "ratio" else None,
+        )
         points = [point for point in points if point.value is not None]
         if not points:
             return TopNResponse(
@@ -655,7 +667,11 @@ class AnalysisEngine:
         metric, resolution = self._resolve(request.metric)
         dimension = self.dimension_registry.resolve(request.dimension)
         if metric is None or dimension is None or dimension.kind == "time" or dimension.name not in metric.dimensions:
-            reason = resolution.message if metric is None else f"dimension {request.dimension!r} is not supported by {request.metric}"
+            reason = (
+                resolution.message
+                if metric is None
+                else f"dimension {request.dimension!r} is not supported by {request.metric}"
+            )
             return ContributionResponse(
                 status=self._resolution_status(resolution) if metric is None else AnalysisStatus.INVALID_REQUEST,
                 metric=request.metric,
@@ -763,9 +779,7 @@ class AnalysisEngine:
         total_current = sum(current_values.values(), ZERO) if not incomplete else None
         total_baseline = sum(baseline_values.values(), ZERO) if not incomplete else None
         total_change = (
-            _value(total_current - total_baseline)
-            if total_current is not None and total_baseline is not None
-            else None
+            _value(total_current - total_baseline) if total_current is not None and total_baseline is not None else None
         )
         items: list[ContributionItem] = []
         if total_change is not None:

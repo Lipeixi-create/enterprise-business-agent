@@ -8,7 +8,6 @@ from decimal import Decimal, InvalidOperation
 from typing import Any, Iterable
 
 from sqlalchemy import Engine, insert, select
-from sqlalchemy.exc import IntegrityError
 
 from ..llm import (
     LLMClient,
@@ -71,18 +70,12 @@ _REASON_TEXT = {
 def _with_issues(prompt: str, issues: list[str] | None) -> str:
     if not issues:
         return prompt
-    return (
-        prompt
-        + "\n上一次输出未通过数值校验；请只使用事实中出现的数字重写：\n- "
-        + "\n- ".join(issues[:6])
-    )
+    return prompt + "\n上一次输出未通过数值校验；请只使用事实中出现的数字重写：\n- " + "\n- ".join(issues[:6])
 
 
 def _issues_text(result: ValidationResult, location: str) -> str:
     messages = [
-        item.message
-        for item in result.issues
-        if item.location in (None, location, "") or item.location == location
+        item.message for item in result.issues if item.location in (None, location, "") or item.location == location
     ][:3]
     return "；".join(messages)
 
@@ -90,10 +83,7 @@ def _issues_text(result: ValidationResult, location: str) -> str:
 def _failure_summary(failed: list[tuple[str, str, str]]) -> str:
     if not failed:
         return "未产生可用的模型文本"
-    return "；".join(
-        f"{location}（{_REASON_TEXT.get(reason, reason)}）"
-        for location, reason, _ in failed[:4]
-    )
+    return "；".join(f"{location}（{_REASON_TEXT.get(reason, reason)}）" for location, reason, _ in failed[:4])
 
 
 def _decimal(value: Any) -> Decimal | None:
@@ -142,12 +132,8 @@ class ReportStore:
                     run_id=stored.run_id,
                     report_version=stored.version,
                     status=stored.status,
-                    report_json=json.dumps(
-                        report.model_dump(mode="json"), ensure_ascii=False
-                    ),
-                    validation_json=json.dumps(
-                        validation.model_dump(mode="json"), ensure_ascii=False
-                    ),
+                    report_json=json.dumps(report.model_dump(mode="json"), ensure_ascii=False),
+                    validation_json=json.dumps(validation.model_dump(mode="json"), ensure_ascii=False),
                     created_at=stored.created_at.isoformat(timespec="seconds"),
                 )
             )
@@ -156,9 +142,7 @@ class ReportStore:
     def versions(self, run_id: str) -> list[StoredReport]:
         with self._lock, self.engine.connect() as connection:
             rows = connection.execute(
-                select(REPORT_TABLE)
-                .where(REPORT_TABLE.c.run_id == run_id)
-                .order_by(REPORT_TABLE.c.report_version)
+                select(REPORT_TABLE).where(REPORT_TABLE.c.run_id == run_id).order_by(REPORT_TABLE.c.report_version)
             ).all()
         return [self._from_row(row) for row in rows]
 
@@ -251,9 +235,7 @@ class ReportGenerator:
         )
         validation = self.validator.validate(report, evidences, findings)
         if validation.passed and self._should_narrate(report):
-            report, validation = self._with_narrative(
-                report, evidences, findings, validation
-            )
+            report, validation = self._with_narrative(report, evidences, findings, validation)
         return self.store.save(report, validation)
 
     # -- deterministic build ------------------------------------------
@@ -274,23 +256,11 @@ class ReportGenerator:
     ) -> ReportDocument:
         valid = [item for item in evidences if item.status == "valid"]
         by_id = {item.evidence_id: item for item in valid}
-        primary = [
-            item
-            for item in findings
-            if item.finding_type in {"fact", "change", "anomaly", "contribution"}
-        ]
-        correlations = [
-            item
-            for item in findings
-            if item.finding_type in {"correlation", "hypothesis"}
-        ]
-        conclusions = [
-            self._conclusion(item, by_id) for item in primary[:8]
-        ]
+        primary = [item for item in findings if item.finding_type in {"fact", "change", "anomaly", "contribution"}]
+        correlations = [item for item in findings if item.finding_type in {"correlation", "hypothesis"}]
+        conclusions = [self._conclusion(item, by_id) for item in primary[:8]]
         anomalies = [
-            self._conclusion(item, by_id)
-            for item in findings
-            if item.finding_type in {"anomaly", "contribution"}
+            self._conclusion(item, by_id) for item in findings if item.finding_type in {"anomaly", "contribution"}
         ][:6]
         cross_domain = [self._conclusion(item, by_id) for item in correlations]
         domains = sorted({item.domain for item in findings if item.domain})
@@ -302,13 +272,7 @@ class ReportGenerator:
                     domain=domain,
                     narrative=" ".join(item.statement for item in domain_findings),
                     finding_ids=[item.finding_id for item in domain_findings],
-                    evidence_ids=sorted(
-                        {
-                            evidence_id
-                            for item in domain_findings
-                            for evidence_id in item.evidence_ids
-                        }
-                    ),
+                    evidence_ids=sorted({evidence_id for item in domain_findings for evidence_id in item.evidence_ids}),
                 )
             )
         recommendations = self._recommendations(findings, by_id)
@@ -325,9 +289,7 @@ class ReportGenerator:
             risks.insert(0, _INCOMPLETE_REASONS[stop_reason])
             next_validation.insert(0, "完成剩余分析步骤后重新生成报告")
             next_validation = next_validation[:6]
-        summary = " ".join(item.statement for item in primary[:3]) or (
-            "当前数据不足以支持明确的经营结论。"
-        )
+        summary = " ".join(item.statement for item in primary[:3]) or ("当前数据不足以支持明确的经营结论。")
         report = ReportDocument(
             report_info=ReportInfo(
                 report_id=str(uuid.uuid4()),
@@ -367,20 +329,14 @@ class ReportGenerator:
         )
         return report
 
-    def _conclusion(
-        self, finding: Finding, evidence_by_id: dict[str, EvidenceRecord]
-    ) -> Conclusion:
+    def _conclusion(self, finding: Finding, evidence_by_id: dict[str, EvidenceRecord]) -> Conclusion:
         refs: list[ValueReference] = []
         for evidence_id in finding.evidence_ids:
             evidence = evidence_by_id.get(evidence_id)
             if evidence is None:
                 continue
             refs.extend(self._refs_for(finding, evidence))
-        certainty = (
-            "hypothesis"
-            if finding.finding_type in {"hypothesis", "correlation"}
-            else "fact"
-        )
+        certainty = "hypothesis" if finding.finding_type in {"hypothesis", "correlation"} else "fact"
         return Conclusion(
             statement=finding.statement,
             finding_ids=[finding.finding_id],
@@ -395,9 +351,7 @@ class ReportGenerator:
         unit = evidence.unit or result.get("unit")
         if evidence.evidence_type == "comparison":
             items = result.get("items") or []
-            index = _match_index(
-                items, ("current_period", "baseline_period"), finding.statement
-            )
+            index = _match_index(items, ("current_period", "baseline_period"), finding.statement)
             item = items[index] if items else {}
             for field in ("current_value", "baseline_value", "absolute_change", "change_rate"):
                 if item.get(field) is not None:
@@ -599,9 +553,7 @@ class ReportGenerator:
             status=evidence.status,
         )
 
-    def _recommendations(
-        self, findings: list[Finding], by_id: dict[str, EvidenceRecord]
-    ) -> list[Recommendation]:
+    def _recommendations(self, findings: list[Finding], by_id: dict[str, EvidenceRecord]) -> list[Recommendation]:
         actions = {
             "contribution": (
                 "对最大贡献维度下钻明细并制定针对性改进措施",
@@ -688,27 +640,17 @@ class ReportGenerator:
         return DataScope(
             metric_codes=sorted({item.metric_code for item in evidences if item.metric_code}),
             metric_definition_versions=sorted(
-                {
-                    item.metric_definition_version
-                    for item in evidences
-                    if item.metric_definition_version
-                }
+                {item.metric_definition_version for item in evidences if item.metric_definition_version}
             ),
             time_ranges=[{"start": start, "end": end} for start, end in time_ranges],
             filters=filters,
             grains=sorted({item.grain for item in evidences if item.grain}),
-            source_tables=sorted(
-                {table for item in evidences for table in item.source_tables}
-            ),
+            source_tables=sorted({table for item in evidences for table in item.source_tables}),
         )
 
     # -- optional model narrative -------------------------------------
     def _should_narrate(self, report: ReportDocument) -> bool:
-        return bool(
-            self.llm is not None
-            and self.narrative_enabled
-            and report.conclusions
-        )
+        return bool(self.llm is not None and self.narrative_enabled and report.conclusions)
 
     def _with_narrative(
         self,
@@ -753,9 +695,7 @@ class ReportGenerator:
                 evidences,
                 findings,
                 lambda issues, s=section: self._narrate_domain(report, findings, s, issues),
-                lambda trial, text, s=section: self._apply_domain_text(
-                    trial, s.domain, text
-                ),
+                lambda trial, text, s=section: self._apply_domain_text(trial, s.domain, text),
                 location=f"domain:{section.domain}",
             )
             if ok:
@@ -763,15 +703,10 @@ class ReportGenerator:
             else:
                 failed.append((f"domain:{section.domain}", reason, detail))
         for section in unresolved:
-            failed.append(
-                (f"domain:{section.domain}", "skipped_section_limit", "")
-            )
+            failed.append((f"domain:{section.domain}", "skipped_section_limit", ""))
 
         if accepted == 0:
-            candidate.warnings.append(
-                "模型叙述生成失败，已全部使用确定性文本："
-                + _failure_summary(failed)
-            )
+            candidate.warnings.append("模型叙述生成失败，已全部使用确定性文本：" + _failure_summary(failed))
             candidate.narrative_mode = "deterministic"
             return candidate, self.validator.validate(candidate, evidences, findings)
 
@@ -780,10 +715,7 @@ class ReportGenerator:
             for location, reason, detail in failed:
                 suffix = f"：{detail}" if detail else ""
                 if reason == "skipped_section_limit":
-                    candidate.warnings.append(
-                        f"模型叙述只覆盖前 {len(sections)} 个业务域，"
-                        f"{location} 使用确定性文本"
-                    )
+                    candidate.warnings.append(f"模型叙述只覆盖前 {len(sections)} 个业务域，{location} 使用确定性文本")
                 else:
                     candidate.warnings.append(
                         f"模型叙述未用于 {location}（{_REASON_TEXT.get(reason, reason)}）"
@@ -856,9 +788,7 @@ class ReportGenerator:
             + report.objective
         )
         prompt = _with_issues(prompt, issues)
-        data, reason = self._complete_json(
-            system, prompt, max_tokens=self.narrative_max_tokens
-        )
+        data, reason = self._complete_json(system, prompt, max_tokens=self.narrative_max_tokens)
         if data is None:
             return None, reason
         text = data.get("executive_summary")
@@ -909,15 +839,11 @@ class ReportGenerator:
             return None, "missing_field"
         return text.strip(), ""
 
-    def _complete_json(
-        self, system: str, prompt: str, *, max_tokens: int
-    ) -> tuple[dict[str, Any] | None, str]:
+    def _complete_json(self, system: str, prompt: str, *, max_tokens: int) -> tuple[dict[str, Any] | None, str]:
         if self.llm is None:
             return None, "llm_not_configured"
         try:
-            result = self.llm.complete_json(
-                system=system, prompt=prompt, max_tokens=max_tokens
-            )
+            result = self.llm.complete_json(system=system, prompt=prompt, max_tokens=max_tokens)
         except LLMTimeout:
             return None, "timeout"
         except LLMTruncated:
@@ -932,7 +858,6 @@ class ReportGenerator:
         if not isinstance(data, dict):
             return None, "invalid_json"
         return data, ""
-
 
 
 def _match_index(items: list[dict[str, Any]], keys: tuple[str, ...], text: str) -> int:

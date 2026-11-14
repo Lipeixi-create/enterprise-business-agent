@@ -36,9 +36,7 @@ def active_request_threads() -> int:
         return _live_threads
 
 
-def _client_timeout(
-    connect_timeout: float, read_timeout: float
-) -> httpx.Timeout:
+def _client_timeout(connect_timeout: float, read_timeout: float) -> httpx.Timeout:
     return httpx.Timeout(
         connect=max(0.001, connect_timeout),
         read=max(0.001, read_timeout),
@@ -85,9 +83,7 @@ def _interrupt(client: Any) -> None:
     # TLS handshake can hold those locks for minutes, so closing here would
     # defeat the total timeout we just enforced.  Close off-thread and let the
     # caller surface the timeout immediately.
-    threading.Thread(
-        target=_close, args=(client,), name="eba-llm-close", daemon=True
-    ).start()
+    threading.Thread(target=_close, args=(client,), name="eba-llm-close", daemon=True).start()
 
 
 def post_json(
@@ -123,9 +119,7 @@ def post_json(
             if cancel_event is not None and cancel_event.is_set():
                 return
             with client:
-                outcome["response"] = client.post(
-                    url, headers=headers, json=payload
-                )
+                outcome["response"] = client.post(url, headers=headers, json=payload)
         except BaseException as exc:  # surfaced on the caller thread
             outcome["error"] = exc
         finally:
@@ -155,9 +149,7 @@ def post_json(
         worker.join(0.25)
         if cancelled:
             raise TransportCancelled("LLM request was cancelled")
-        raise httpx.ReadTimeout(
-            f"LLM request did not complete within {total_timeout:.2f}s"
-        )
+        raise httpx.ReadTimeout(f"LLM request did not complete within {total_timeout:.2f}s")
 
     worker.join()
     error = outcome.get("error")

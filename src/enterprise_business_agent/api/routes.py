@@ -28,11 +28,13 @@ from ..evidence import (
     ApprovalSeparationViolation,
     ApprovalStale,
     InvalidApprovalTransition,
+)
+from ..evidence import (
     report_fingerprint as compute_report_fingerprint,
 )
+from ..mcp import MCP_PROTOCOL_VERSIONS
 from ..nl.contracts import NaturalLanguageRequest, NaturalLanguageResponse, StructuredQueryRequest
 from ..nl.service import NaturalLanguageAnalyzer
-from ..mcp import MCP_PROTOCOL_VERSIONS
 from ..observability.alerts import evaluate_alerts
 from ..observability.setup import current_otel_context
 from ..security import AuthorizationError, Principal
@@ -42,7 +44,6 @@ from .auth import principal_from_request
 from .contracts import ErrorResponse, HealthResponse, StructuredMetricQueryResponse
 from .run_manager import TERMINAL_STATUSES, RunResumeError
 from .run_metrics import metrics_snapshot
-
 
 router = APIRouter()
 
@@ -80,9 +81,7 @@ def _not_found(resource: str, run_id: str) -> HTTPException:
     )
 
 
-def _require_resource(
-    request: Request, principal: Principal, resource: str, run_id: str
-) -> None:
+def _require_resource(request: Request, principal: Principal, resource: str, run_id: str) -> None:
     authorization = request.app.state.authorization
     scope = RESOURCE_SCOPES.get(resource)
     if scope is None:
@@ -147,10 +146,7 @@ def health(request: Request, response: Response) -> HealthResponse:
         dialect=app.state.dialect,
         readonly=True,
         llm_configured=app.state.llm_client is not None,
-        agent_available=(
-            getattr(app.state, "agent_runtime", None) is not None
-            and app.state.llm_client is not None
-        ),
+        agent_available=(getattr(app.state, "agent_runtime", None) is not None and app.state.llm_client is not None),
         auth_enabled=bool(app.state.settings.api_keys),
         anonymous_allowed=app.state.settings.allow_anonymous_api,
         version=__version__,
@@ -279,9 +275,7 @@ async def structured_metric_query(
     principal: Principal = Depends(principal_from_request),
 ) -> StructuredMetricQueryResponse:
     _require_metrics_scope(principal)
-    response = await _run_in_thread(
-        request, lambda: _structured_query(request, payload, principal)
-    )
+    response = await _run_in_thread(request, lambda: _structured_query(request, payload, principal))
     if response.status == AnalysisStatus.FORBIDDEN:
         detail = dict(response.error.detail) if response.error else {}
         if response.error is not None and response.error.code != "forbidden":
@@ -607,9 +601,7 @@ def cancel_agent_run(
     _require_agent_scope(principal)
     _require_resource(request, principal, "run", run_id)
     owner = request.app.state.run_store.owner_of(run_id)
-    accepted, reason = request.app.state.run_manager.cancel(
-        run_id, principal, owner=owner
-    )
+    accepted, reason = request.app.state.run_manager.cancel(run_id, principal, owner=owner)
     if reason == "not_found":
         raise HTTPException(
             status_code=404,
@@ -703,14 +695,11 @@ async def stream_agent_run(
                 break
             document = run_store.get(run_id)
             if document is None:
-                yield "event: error\ndata: {\"code\": \"agent_run_not_found\"}\n\n"
+                yield 'event: error\ndata: {"code": "agent_run_not_found"}\n\n'
                 break
             events = run_store.list_events(run_id)
             for event in events[sent:]:
-                yield (
-                    f"event: {event['event_type']}\n"
-                    f"data: {json.dumps(event, ensure_ascii=False, default=str)}\n\n"
-                )
+                yield (f"event: {event['event_type']}\ndata: {json.dumps(event, ensure_ascii=False, default=str)}\n\n")
             sent = len(events)
             status = str(document.get("status"))
             if status != last_status:
@@ -833,9 +822,7 @@ def get_run_report(
         )
     document = stored.model_dump(mode="json")
     approval = _phase5(request).approval_store.get(stored.report_id, stored.version)
-    document["approval"] = (
-        approval.model_dump(mode="json") if approval is not None else None
-    )
+    document["approval"] = approval.model_dump(mode="json") if approval is not None else None
     return document
 
 
@@ -911,11 +898,7 @@ class ApprovalDecisionRequest(BaseModel):
 
 def _report_version(request: Request, run_id: str, version: int | None):
     pipeline = _phase5(request)
-    stored = (
-        pipeline.report_store.get(run_id, version)
-        if version is not None
-        else pipeline.report_store.latest(run_id)
-    )
+    stored = pipeline.report_store.get(run_id, version) if version is not None else pipeline.report_store.latest(run_id)
     if stored is None:
         raise HTTPException(
             status_code=404,
@@ -1117,9 +1100,7 @@ def get_run_report_approval_events(
     }
 
 
-ApprovalStateFilter = Literal[
-    "not_required", "pending", "approved", "rejected", "cancelled"
-]
+ApprovalStateFilter = Literal["not_required", "pending", "approved", "rejected", "cancelled"]
 
 
 @router.get(
@@ -1137,7 +1118,11 @@ def list_agent_approvals(
     page: int = Query(default=1, ge=1),
     page_size: int = Query(default=20, ge=1, le=100),
     sort_by: Literal[
-        "requested_at", "created_at", "updated_at", "decided_at", "state",
+        "requested_at",
+        "created_at",
+        "updated_at",
+        "decided_at",
+        "state",
         "report_version",
     ] = "requested_at",
     sort_dir: Literal["asc", "desc"] = "desc",
@@ -1192,9 +1177,7 @@ def list_agent_approvals(
             end = datetime.fromisoformat(decided)
             if end.tzinfo is None:
                 end = end.replace(tzinfo=timezone.utc)
-            payload["wait_seconds"] = round(
-                max(0.0, (end - requested).total_seconds()), 3
-            )
+            payload["wait_seconds"] = round(max(0.0, (end - requested).total_seconds()), 3)
         except ValueError:
             payload["wait_seconds"] = None
         items.append(payload)
@@ -1399,7 +1382,5 @@ def get_operational_alerts(
                 "detail": {"required_scope": "admin", "role": principal.role},
             },
         )
-    metrics = metrics_snapshot(
-        request.app.state.run_store, request.app.state.settings
-    )
+    metrics = metrics_snapshot(request.app.state.run_store, request.app.state.settings)
     return evaluate_alerts(metrics, request.app.state.settings)

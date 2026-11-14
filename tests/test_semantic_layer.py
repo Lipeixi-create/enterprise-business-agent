@@ -7,12 +7,33 @@ from enterprise_business_agent.semantic_validation import validate_semantic_agai
 
 
 def test_required_metrics_are_defined():
-    metrics = {metric.name: metric for metric in load_metrics(Path(__file__).parents[1] / "semantic_layer" / "metrics.json")}
+    metrics = {
+        metric.name: metric for metric in load_metrics(Path(__file__).parents[1] / "semantic_layer" / "metrics.json")
+    }
     required = {
-        "revenue", "sales_amount", "sales_volume", "gross_profit", "gross_margin", "marketing_spend",
-        "campaign_revenue", "ROI", "CAC", "conversion_rate", "inventory", "demand_units", "stockout_units",
-        "inventory_days", "inventory_turnover", "stockout_rate", "fulfillment_rate", "headcount",
-        "turnover_rate", "labor_cost", "budget", "actual", "budget_vs_actual",
+        "revenue",
+        "sales_amount",
+        "sales_volume",
+        "gross_profit",
+        "gross_margin",
+        "marketing_spend",
+        "campaign_revenue",
+        "ROI",
+        "CAC",
+        "conversion_rate",
+        "inventory",
+        "demand_units",
+        "stockout_units",
+        "inventory_days",
+        "inventory_turnover",
+        "stockout_rate",
+        "fulfillment_rate",
+        "headcount",
+        "turnover_rate",
+        "labor_cost",
+        "budget",
+        "actual",
+        "budget_vs_actual",
     }
     assert required <= metrics.keys()
     assert all(metric.source_table and metric.expression and metric.source_fields for metric in metrics.values())
@@ -41,8 +62,8 @@ def test_dimension_registry_is_defined():
 def test_metric_config_matches_database_schema():
     from sqlalchemy import create_engine
 
-    from enterprise_business_agent.db import Base
     from enterprise_business_agent import models  # noqa: F401
+    from enterprise_business_agent.db import Base
 
     engine = create_engine("sqlite+pysqlite:///:memory:")
     Base.metadata.create_all(engine)

@@ -118,9 +118,7 @@ class _NarrativeLLM:
         self.calls: list[dict] = []
 
     def complete_json(self, *, system: str, prompt: str, max_tokens: int | None = None):
-        self.calls.append(
-            {"system": system, "prompt": prompt, "max_tokens": max_tokens}
-        )
+        self.calls.append({"system": system, "prompt": prompt, "max_tokens": max_tokens})
         if self.error is not None:
             raise self.error
         if "执行摘要" in system:
@@ -139,7 +137,9 @@ def store(tmp_path):
 
 
 def _generate(store, *, evidences=None, findings=None, llm=None, narrative=False, fixes=1):
-    evidences = [_evidence("e-cmp"), _evidence("e-con", evidence_type="contribution")] if evidences is None else evidences
+    evidences = (
+        [_evidence("e-cmp"), _evidence("e-con", evidence_type="contribution")] if evidences is None else evidences
+    )
     findings = FindingEngine().build("run-1", evidences) if findings is None else findings
     generator = ReportGenerator(
         store,
@@ -311,9 +311,7 @@ def test_partial_narrative_keeps_valid_sections_and_warns(store):
 
 
 def test_truncated_narrative_is_reported_as_truncation(store):
-    llm = _NarrativeLLM(
-        error=LLMTruncated("reached the output token cap", status_code=None)
-    )
+    llm = _NarrativeLLM(error=LLMTruncated("reached the output token cap", status_code=None))
     stored = _generate(store, llm=llm, narrative=True)
     assert stored.report.narrative_mode == "deterministic"
     assert any("截断" in item for item in stored.report.warnings)

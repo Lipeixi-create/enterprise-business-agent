@@ -43,7 +43,6 @@ from tests.agent_fakes import (
     truncated_response,
 )
 
-
 ANALYST = Principal("key:test", "analyst", frozenset({"metrics:read", "agent:run"}))
 
 
@@ -128,9 +127,7 @@ def test_multi_step_investigation_uses_tool_result_to_choose_next_step(agent_env
                     "start": "2025-03-01",
                     "end": "2025-03-01",
                     "dimensions": [],
-                    "filters": [
-                        {"dimension": "region", "operator": "eq", "value": region}
-                    ],
+                    "filters": [{"dimension": "region", "operator": "eq", "value": region}],
                 },
             )
         return finish_response("已完成区域排名，并按排名第一的区域查询了销售额。")
@@ -263,9 +260,7 @@ def test_budget_exhaustion_does_not_execute_extra_tool(agent_env):
             ),
         ]
     )
-    result = _runtime(agent_env, llm).run(
-        "预算测试", ANALYST, max_tool_calls=1
-    )
+    result = _runtime(agent_env, llm).run("预算测试", ANALYST, max_tool_calls=1)
 
     assert result.status == AgentStatus.BUDGET_EXHAUSTED
     assert result.stop_reason == "tool_budget_exhausted"
@@ -502,9 +497,7 @@ def test_empty_model_response_is_retried_once_then_recovers(agent_env):
         ]
     )
     events: list[dict] = []
-    result = _runtime(agent_env, llm).run(
-        "模型空响应", ANALYST, trace_sink=events.append
-    )
+    result = _runtime(agent_env, llm).run("模型空响应", ANALYST, trace_sink=events.append)
 
     assert len(llm.calls) == 2
     assert result.status == AgentStatus.NO_EVIDENCE
@@ -566,9 +559,7 @@ def test_multiple_tool_calls_in_one_turn_run_only_the_first(agent_env):
 
 
 def test_llm_timeout_returns_structured_state(agent_env):
-    llm = ScriptedLLM(
-        [LLMTimeout("provider timed out"), LLMTimeout("provider timed out again")]
-    )
+    llm = ScriptedLLM([LLMTimeout("provider timed out"), LLMTimeout("provider timed out again")])
     result = _runtime(agent_env, llm).run("模型超时", ANALYST)
 
     # The status stays a terminal LLM timeout; only the answer becomes a
@@ -585,12 +576,7 @@ def test_llm_timeout_returns_structured_state(agent_env):
 
 
 def test_failure_category_separates_model_timeout_from_its_budget_variant():
-    assert (
-        _failure_category(
-            AgentStatus.LLM_TIMEOUT, {"budget_stop_reason": "llm_request_timeout"}
-        )
-        == "model_timeout"
-    )
+    assert _failure_category(AgentStatus.LLM_TIMEOUT, {"budget_stop_reason": "llm_request_timeout"}) == "model_timeout"
     assert (
         _failure_category(
             AgentStatus.LLM_TIMEOUT,
@@ -599,9 +585,7 @@ def test_failure_category_separates_model_timeout_from_its_budget_variant():
         == "model_timeout_budget"
     )
     assert (
-        _failure_category(
-            AgentStatus.TIMEOUT, {"budget_stop_reason": "insufficient_remaining_time"}
-        )
+        _failure_category(AgentStatus.TIMEOUT, {"budget_stop_reason": "insufficient_remaining_time"})
         == "case_time_budget"
     )
 
@@ -617,10 +601,7 @@ def test_llm_timeout_retry_carries_recovery_feedback(agent_env):
 
     assert len(llm.calls) == 2
     retry_messages = llm.calls[1]["messages"]
-    assert any(
-        "上一次模型请求超时" in str(item.get("content") or "")
-        for item in retry_messages
-    )
+    assert any("上一次模型请求超时" in str(item.get("content") or "") for item in retry_messages)
     assert result.final_answer == "基于已有证据，本次没有可用的数据结论。"
 
 
@@ -679,9 +660,7 @@ def test_tool_timeout_is_bounded_and_reported(agent_env):
             )
         ]
     )
-    result = _runtime(agent_env, llm, settings=settings, definitions=definitions).run(
-        "工具超时", ANALYST
-    )
+    result = _runtime(agent_env, llm, settings=settings, definitions=definitions).run("工具超时", ANALYST)
 
     assert result.status == AgentStatus.TOOL_FAILURE
     assert result.tool_calls[0].status == "timeout"
@@ -732,9 +711,7 @@ def test_no_matching_data_is_not_reported_as_success(agent_env):
                     "metric": "sales_amount",
                     "start": "2025-01-01",
                     "end": "2025-01-01",
-                    "filters": [
-                        {"dimension": "region", "operator": "eq", "value": "ZZ"}
-                    ],
+                    "filters": [{"dimension": "region", "operator": "eq", "value": "ZZ"}],
                 },
             ),
             finish_response("没有数据。"),
@@ -766,9 +743,7 @@ def test_sql_injection_metric_is_not_executed_and_table_survives(agent_env):
     )
     assert result.status in {"unsupported", "insufficient_data"}
     with agent_env.read_engine.connect() as connection:
-        assert connection.execute(
-            text("SELECT count(*) FROM sqlite_master WHERE name='sales_fact'")
-        ).scalar_one() == 1
+        assert connection.execute(text("SELECT count(*) FROM sqlite_master WHERE name='sales_fact'")).scalar_one() == 1
 
 
 def test_tool_schema_rejects_raw_sql_argument(agent_env):
@@ -798,12 +773,8 @@ def test_metric_summary_does_not_describe_dimensions_as_time_series():
     result = SimpleNamespace(
         label="营销 ROI",
         points=[
-            SimpleNamespace(
-                period="2025-10", dimensions={"campaign": "C006"}, value="0.72"
-            ),
-            SimpleNamespace(
-                period="2025-11", dimensions={"campaign": "C007"}, value="1.75"
-            ),
+            SimpleNamespace(period="2025-10", dimensions={"campaign": "C006"}, value="0.72"),
+            SimpleNamespace(period="2025-11", dimensions={"campaign": "C007"}, value="1.75"),
         ],
     )
     summary = AnalysisGateway._metric_summary(result)
@@ -815,28 +786,17 @@ def test_metric_summary_does_not_describe_dimensions_as_time_series():
 def test_metric_summary_single_point_is_not_a_range():
     result = SimpleNamespace(
         label="销售额",
-        points=[
-            SimpleNamespace(
-                period="2025-10~2025-12", dimensions={}, value="300.00"
-            )
-        ],
+        points=[SimpleNamespace(period="2025-10~2025-12", dimensions={}, value="300.00")],
     )
-    assert (
-        AnalysisGateway._metric_summary(result)
-        == "销售额在 2025-10~2025-12 为 300.00。"
-    )
+    assert AnalysisGateway._metric_summary(result) == "销售额在 2025-10~2025-12 为 300.00。"
 
 
 def test_metric_summary_marks_null_values_as_not_calculable():
     result = SimpleNamespace(
         label="单位采购成本",
         points=[
-            SimpleNamespace(
-                period="2025-10~2025-12", dimensions={"product": "P004"}, value=None
-            ),
-            SimpleNamespace(
-                period="2025-10~2025-12", dimensions={"product": "P005"}, value="783.55"
-            ),
+            SimpleNamespace(period="2025-10~2025-12", dimensions={"product": "P004"}, value=None),
+            SimpleNamespace(period="2025-10~2025-12", dimensions={"product": "P005"}, value="783.55"),
         ],
     )
     summary = AnalysisGateway._metric_summary(result)
@@ -847,16 +807,9 @@ def test_metric_summary_marks_null_values_as_not_calculable():
 def test_metric_summary_all_null_values_has_no_fake_number():
     result = SimpleNamespace(
         label="单位采购成本",
-        points=[
-            SimpleNamespace(
-                period="2025-12", dimensions={"product": "P004"}, value=None
-            )
-        ],
+        points=[SimpleNamespace(period="2025-12", dimensions={"product": "P004"}, value=None)],
     )
-    assert (
-        AnalysisGateway._metric_summary(result)
-        == "单位采购成本返回 1 个数据点，但所有数值均不可计算。"
-    )
+    assert AnalysisGateway._metric_summary(result) == "单位采购成本返回 1 个数据点，但所有数值均不可计算。"
 
 
 def test_truncated_final_answer_is_continued_once(agent_env):
@@ -882,9 +835,7 @@ def test_truncated_final_answer_is_continued_once(agent_env):
     assert any("输出 token 上限" in item for item in result.warnings)
     continuation = llm.calls[-1]
     assert continuation["tools"] == []
-    assert continuation["max_tokens"] == (
-        agent_env.settings.agent_final_continuation_max_tokens
-    )
+    assert continuation["max_tokens"] == (agent_env.settings.agent_final_continuation_max_tokens)
 
 
 def test_failed_continuation_keeps_partial_answer_and_warns(agent_env):
@@ -930,9 +881,7 @@ def test_llm_timeout_keeps_completed_evidence_in_a_partial_answer(agent_env):
         stop_reason="tool_use",
         model="fake-scripted-model",
     )
-    llm = ScriptedLLM(
-        [query, LLMTimeout("provider timed out"), LLMTimeout("provider timed out")]
-    )
+    llm = ScriptedLLM([query, LLMTimeout("provider timed out"), LLMTimeout("provider timed out")])
     result = _runtime(agent_env, llm).run("先查销售额再总结", ANALYST)
 
     # The case still fails; the partial answer only reuses evidence that the
@@ -978,9 +927,7 @@ def test_insufficient_remaining_time_skips_a_doomed_model_call(agent_env):
     assert "query_metric:" in result.final_answer
 
 
-def _sales_by_region(
-    call_id: str, start: str = "2025-03-01", end: str = "2025-03-01"
-) -> LLMToolResponse:
+def _sales_by_region(call_id: str, start: str = "2025-03-01", end: str = "2025-03-01") -> LLMToolResponse:
     return tool_response(
         call_id,
         "query_metric",
@@ -1033,9 +980,7 @@ def test_semantic_duplicate_dimension_query_blocks_the_followup_top_n(agent_env)
     assert blocked.status == "duplicate_suppressed"
     assert blocked.error_code == "semantic_duplicate"
     assert result.state.duplicate_tool_calls == 1
-    blocked_steps = [
-        step for step in result.steps if step.action == "call_tool_blocked"
-    ]
+    blocked_steps = [step for step in result.steps if step.action == "call_tool_blocked"]
     assert len(blocked_steps) == 1
     assert blocked_steps[0].blocked_reason
     assert blocked_steps[0].remaining_seconds is not None
@@ -1077,9 +1022,7 @@ def test_semantic_duplicate_allows_a_different_grain(agent_env):
         },
     )
     aggregate = _sales_top_n("c2", start="2025-01-01", end="2025-03-01")
-    llm = ScriptedLLM(
-        [monthly, aggregate, finish_response("月度序列和区间排名都已查询。")]
-    )
+    llm = ScriptedLLM([monthly, aggregate, finish_response("月度序列和区间排名都已查询。")])
     result = _runtime(agent_env, llm).run("区域销售额月度序列与区间排名", ANALYST)
 
     assert result.status == AgentStatus.COMPLETED
@@ -1145,9 +1088,7 @@ def test_semantic_duplicate_allows_a_different_filter(agent_env):
             "filters": [{"dimension": "region", "operator": "eq", "value": "EC"}],
         },
     )
-    llm = ScriptedLLM(
-        [filtered, other_region, finish_response("两个区域的排名都已查询。")]
-    )
+    llm = ScriptedLLM([filtered, other_region, finish_response("两个区域的排名都已查询。")])
     result = _runtime(agent_env, llm).run("华北与华东的产品销售额", ANALYST)
 
     assert result.status == AgentStatus.COMPLETED
@@ -1184,9 +1125,7 @@ def test_semantic_duplicate_matches_filters_regardless_of_order(agent_env):
             "filters": list(reversed(filters)),
         },
     )
-    llm = ScriptedLLM(
-        [query, duplicate, finish_response("产品销售额已从已有结果获取。")]
-    )
+    llm = ScriptedLLM([query, duplicate, finish_response("产品销售额已从已有结果获取。")])
     result = _runtime(agent_env, llm).run("华北电商渠道的产品销售额", ANALYST)
 
     assert result.status == AgentStatus.COMPLETED_WITH_WARNINGS
@@ -1271,9 +1210,7 @@ def test_fresh_decision_guard_uses_the_observed_call_duration(agent_env):
 # --- Phase 7.5: model-visible tool data and dedupe result reuse -------------
 
 
-def _inventory_by_product(
-    call_id: str, start: str = "2024-02-01", end: str = "2024-02-01"
-) -> LLMToolResponse:
+def _inventory_by_product(call_id: str, start: str = "2024-02-01", end: str = "2024-02-01") -> LLMToolResponse:
     return tool_response(
         call_id,
         "query_metric",
@@ -1356,9 +1293,7 @@ def test_deduped_top_n_returns_every_existing_product_value(agent_env):
     }
     rows = normal["data"]["rows"]
     assert len(rows) == 8
-    assert {row["dimensions"]["product"] for row in rows} == {
-        f"P00{index}" for index in range(1, 9)
-    }
+    assert {row["dimensions"]["product"] for row in rows} == {f"P00{index}" for index in range(1, 9)}
     assert all(row["value"] is not None for row in rows)
     assert len({row["value"] for row in rows}) == 8
 
@@ -1392,9 +1327,7 @@ def test_deduped_top_n_returns_every_existing_product_value(agent_env):
         ("2024-01-01", "2025-12-01", "sales_amount", [], 24),
     ],
 )
-def test_model_visible_rows_cover_5_8_20_and_more(
-    agent_env, start, end, metric, dimensions, expected
-):
+def test_model_visible_rows_cover_5_8_20_and_more(agent_env, start, end, metric, dimensions, expected):
     llm = ScriptedLLM(
         [
             tool_response(
@@ -1487,7 +1420,6 @@ def test_duplicate_reuse_is_reauthorized_before_it_is_returned(agent_env):
     assert [item.tool for item in result.tool_calls] == ["query_metric", "top_n"]
 
 
-
 def test_yoy_year_rejects_a_quarter_argument():
     """A quarter-scoped question must not silently use annual YoY."""
 
@@ -1512,19 +1444,14 @@ def test_relation_violation_triggers_one_bounded_correction(agent_env):
             "grain": "total",
         },
     )
-    wrong = finish_response(
-        "2025年12月各产品库存天数：P004 87.345507，P005 79.203518。"
-        "库存天数最高的是 P004 和 P005。"
-    )
+    wrong = finish_response("2025年12月各产品库存天数：P004 87.345507，P005 79.203518。库存天数最高的是 P004 和 P005。")
     corrected = finish_response(
         "2025年12月各产品库存天数：P004 87.345507，P005 79.203518。"
         "库存天数最高的是 P004（87.345507）；P005 是第二高，不能称为最高。"
     )
     llm = ScriptedLLM([query, wrong, corrected])
 
-    result = _runtime(agent_env, llm).run(
-        "2025年12月各产品的库存天数是多少？", ANALYST
-    )
+    result = _runtime(agent_env, llm).run("2025年12月各产品的库存天数是多少？", ANALYST)
 
     assert len(llm.calls) == 3
     assert "业务关系不一致" in llm.calls[2]["messages"][-1]["content"]
@@ -1545,19 +1472,13 @@ def test_relation_correction_is_attempted_only_once(agent_env):
             "grain": "total",
         },
     )
-    wrong = finish_response(
-        "2025年12月各产品库存天数：P004 87.345507，P005 79.203518。"
-        "库存天数最高的是 P004 和 P005。"
-    )
+    wrong = finish_response("2025年12月各产品库存天数：P004 87.345507，P005 79.203518。库存天数最高的是 P004 和 P005。")
     still_wrong = finish_response(
-        "2025年12月各产品库存天数：P004 87.345507，P005 79.203518。"
-        "库存天数最高的是 P004 和 P005。"
+        "2025年12月各产品库存天数：P004 87.345507，P005 79.203518。库存天数最高的是 P004 和 P005。"
     )
     llm = ScriptedLLM([query, wrong, still_wrong])
 
-    result = _runtime(agent_env, llm).run(
-        "2025年12月各产品的库存天数是多少？", ANALYST
-    )
+    result = _runtime(agent_env, llm).run("2025年12月各产品的库存天数是多少？", ANALYST)
 
     assert len(llm.calls) == 3
     assert result.relation_issues
@@ -1576,17 +1497,10 @@ def test_truncated_correction_keeps_the_complete_original_answer(agent_env):
             "grain": "total",
         },
     )
-    wrong = finish_response(
-        "2025年12月各产品库存天数：P004 87.345507，P005 79.203518。"
-        "库存天数最高的是 P004 和 P005。"
-    )
-    llm = ScriptedLLM(
-        [query, wrong, truncated_response("逐成员核对工具返回数据（top")]
-    )
+    wrong = finish_response("2025年12月各产品库存天数：P004 87.345507，P005 79.203518。库存天数最高的是 P004 和 P005。")
+    llm = ScriptedLLM([query, wrong, truncated_response("逐成员核对工具返回数据（top")])
 
-    result = _runtime(agent_env, llm).run(
-        "2025年12月各产品的库存天数是多少？", ANALYST
-    )
+    result = _runtime(agent_env, llm).run("2025年12月各产品的库存天数是多少？", ANALYST)
 
     assert result.final_answer == wrong.text
     assert result.relation_issues
@@ -1619,9 +1533,7 @@ def test_unknown_product_returns_an_explicit_no_data_answer(agent_env):
         ]
     )
 
-    result = _runtime(agent_env, llm).run(
-        "2025年12月产品P999的销售额是多少？", ANALYST
-    )
+    result = _runtime(agent_env, llm).run("2025年12月产品P999的销售额是多少？", ANALYST)
 
     assert result.status == AgentStatus.TOOL_FAILURE
     answer = result.final_answer or ""
@@ -1679,10 +1591,7 @@ def test_metric_query_defaults_to_monthly_grain():
 
 
 def test_tool_descriptions_steer_to_specialized_tools():
-    descriptions = {
-        definition.name: definition.description
-        for definition in build_default_tools()
-    }
+    descriptions = {definition.name: definition.description for definition in build_default_tools()}
 
     assert "保留 month 明细" in descriptions["query_metric"]
     assert "top_n" in descriptions["query_metric"]

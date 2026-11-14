@@ -68,7 +68,6 @@ def _clear_provider_env(monkeypatch) -> None:
         monkeypatch.delenv(name, raising=False)
 
 
-
 def _settings(**overrides) -> Settings:
     values = dict(
         data_start=date(2024, 1, 1),
@@ -129,8 +128,7 @@ def test_preflight_blocks_without_authorization():
     assert status["authorization.live_model"] == FAIL
     assert readiness.blocking is True
     assert "不会发送任何请求" in next(
-        item.message for item in readiness.failed
-        if item.name == "authorization.live_model"
+        item.message for item in readiness.failed if item.name == "authorization.live_model"
     )
 
 
@@ -248,8 +246,11 @@ def test_runner_preflight_only_reports_without_a_request(tmp_path):
 
 def test_runner_requires_a_budget_confirmation(tmp_path):
     completed = _run(
-        "--allow-live-model", "--preset", "first-round-20",
-        "--output", str(tmp_path / "run.json"),
+        "--allow-live-model",
+        "--preset",
+        "first-round-20",
+        "--output",
+        str(tmp_path / "run.json"),
     )
     assert completed.returncode == 3
     assert "max-model-calls is required" in completed.stdout
@@ -259,9 +260,13 @@ def test_runner_requires_a_budget_confirmation(tmp_path):
 
 def test_runner_does_not_send_a_request_without_a_key(tmp_path):
     completed = _run(
-        "--allow-live-model", "--max-model-calls", "40",
-        "--preset", "first-round-20",
-        "--output", str(tmp_path / "run.json"),
+        "--allow-live-model",
+        "--max-model-calls",
+        "40",
+        "--preset",
+        "first-round-20",
+        "--output",
+        str(tmp_path / "run.json"),
     )
     assert completed.returncode == 1
     assert "preflight has blocking issues" in completed.stdout
@@ -271,9 +276,13 @@ def test_runner_does_not_send_a_request_without_a_key(tmp_path):
 
 def test_runner_rejects_a_budget_above_the_hard_limit(tmp_path):
     completed = _run(
-        "--allow-live-model", "--max-model-calls", str(HARD_MAX_MODEL_CALLS + 1),
-        "--preset", "first-round-20",
-        "--output", str(tmp_path / "run.json"),
+        "--allow-live-model",
+        "--max-model-calls",
+        str(HARD_MAX_MODEL_CALLS + 1),
+        "--preset",
+        "first-round-20",
+        "--output",
+        str(tmp_path / "run.json"),
     )
     assert completed.returncode == 1
     assert "超过硬上限" in completed.stdout
@@ -554,9 +563,7 @@ def test_preflight_counts_agree_with_the_number_of_checks():
         },
     ]
     for scenario in scenarios:
-        readiness = live_preflight(
-            _settings(llm_api_key=SECRET), _first_round(), **scenario
-        )
+        readiness = live_preflight(_settings(llm_api_key=SECRET), _first_round(), **scenario)
         counts = readiness.counts()
         assert counts["total"] == len(readiness.checks)
         assert counts[PASS] + counts[WARN] + counts[FAIL] == counts["total"]
@@ -576,20 +583,14 @@ def test_preflight_separates_operator_gates_from_environment_blockers():
         "authorization.live_model",
         "authorization.budget",
     ]
-    assert [item.name for item in readiness.environment_blockers] == [
-        "provider.api_key"
-    ]
+    assert [item.name for item in readiness.environment_blockers] == ["provider.api_key"]
     assert readiness.blocking is True
 
 
 def test_dotenv_declarations_report_names_never_values(tmp_path):
     env = tmp_path / ".env"
     env.write_text(
-        "# a comment\n"
-        "export LLM_PROVIDER=glm\n"
-        "LLM_MODEL=glm-5.3-flash\n"
-        "GLM_API_KEY=sk-live-value\n"
-        "ZHIPU_API_KEY=\n",
+        "# a comment\nexport LLM_PROVIDER=glm\nLLM_MODEL=glm-5.3-flash\nGLM_API_KEY=sk-live-value\nZHIPU_API_KEY=\n",
         encoding="utf-8",
     )
     declared = dotenv_llm_declarations(env)
@@ -626,9 +627,7 @@ def test_preflight_explains_a_dotenv_that_was_not_loaded(tmp_path):
 def test_preflight_passes_when_the_dotenv_was_loaded(tmp_path):
     env = tmp_path / ".env"
     env.write_text(
-        "LLM_PROVIDER=anthropic\n"
-        "LLM_MODEL=claude-sonnet-5-5\n"
-        "ANTHROPIC_API_KEY=sk-live-value\n",
+        "LLM_PROVIDER=anthropic\nLLM_MODEL=claude-sonnet-5-5\nANTHROPIC_API_KEY=sk-live-value\n",
         encoding="utf-8",
     )
     readiness = live_preflight(
@@ -672,9 +671,7 @@ def test_get_settings_ignores_dotenv_unless_it_is_opted_in(tmp_path, monkeypatch
     assert "sk-live-value" not in dumped
 
 
-def test_runner_load_dotenv_flag_reaches_the_preflight(
-    tmp_path, monkeypatch, capsys
-):
+def test_runner_load_dotenv_flag_reaches_the_preflight(tmp_path, monkeypatch, capsys):
     module = _runner_module()
     (tmp_path / ".env").write_text(
         "LLM_PROVIDER=glm\n"
@@ -717,12 +714,8 @@ def test_runner_load_dotenv_flag_reaches_the_preflight(
 def test_cost_stays_null_when_prices_are_not_configured():
     module = _runner_module()
     case = _cases()[0]
-    record = _fake_result(
-        case, tokens={"input": 1_000_000, "output": 500_000}
-    ).model_dump(mode="json")
-    summary = summarize_live_results(
-        [record], model="fake-offline-plan-llm", provider="anthropic", real_llm=False
-    )
+    record = _fake_result(case, tokens={"input": 1_000_000, "output": 500_000}).model_dump(mode="json")
+    summary = summarize_live_results([record], model="fake-offline-plan-llm", provider="anthropic", real_llm=False)
 
     unknown = module._cost_block(summary, _settings())
     assert unknown["estimated"] is False
@@ -787,8 +780,6 @@ def test_counting_llm_does_not_count_a_refused_call():
     assert counter.calls == 0
 
 
-
-
 @pytest.mark.parametrize("status", ["llm_timeout", "timeout"])
 def test_executor_stops_on_either_timeout_status(status):
     module = _runner_module()
@@ -814,10 +805,15 @@ def test_executor_stops_on_either_timeout_status(status):
 def test_runner_rejects_an_out_of_range_case_budget(tmp_path):
     for value in ("0", "-5", "301"):
         completed = _run(
-            "--allow-live-model", "--max-model-calls", "40",
-            "--preset", "first-round-20",
-            "--case-max-seconds", value,
-            "--output", str(tmp_path / "run.json"),
+            "--allow-live-model",
+            "--max-model-calls",
+            "40",
+            "--preset",
+            "first-round-20",
+            "--case-max-seconds",
+            value,
+            "--output",
+            str(tmp_path / "run.json"),
         )
         assert completed.returncode == 3, value
         assert "--case-max-seconds must be greater than 0" in completed.stdout
@@ -827,8 +823,11 @@ def test_runner_rejects_an_out_of_range_case_budget(tmp_path):
 
 def test_runner_applies_the_case_budget_to_preflight(tmp_path):
     completed = _run(
-        "--preflight-only", "--case-max-seconds", "120",
-        "--output", str(tmp_path / "run.json"),
+        "--preflight-only",
+        "--case-max-seconds",
+        "120",
+        "--output",
+        str(tmp_path / "run.json"),
     )
     assert "case budget: 120s per case" in completed.stdout
     assert ".env unchanged" in completed.stdout

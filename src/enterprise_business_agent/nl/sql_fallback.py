@@ -12,7 +12,6 @@ from ..llm.schemas import CandidateSQLPlan
 from ..security import QueryError, QueryErrorCode, SecureQueryService
 from .contracts import ErrorInfo, SQLQueryResult
 
-
 _ISO_DATE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 
 
@@ -46,10 +45,7 @@ class SQLFallbackRunner:
 
     def _catalog(self) -> str:
         allowed = sorted(self.query_service.guard.allowed_tables)
-        columns = {
-            table: sorted(self.query_service.guard.allowed_columns.get(table, set()))
-            for table in allowed
-        }
+        columns = {table: sorted(self.query_service.guard.allowed_columns.get(table, set())) for table in allowed}
         return json.dumps(columns, ensure_ascii=False)
 
     def run(
@@ -73,7 +69,7 @@ class SQLFallbackRunner:
                 result = self.llm_client.complete_json(
                     system=(
                         "You generate exactly one read-only SQL SELECT for a business database. "
-                        "Return JSON only: {\"sql\": \"...\", \"params\": {...}, \"rationale\": \"...\"}. "
+                        'Return JSON only: {"sql": "...", "params": {...}, "rationale": "..."}. '
                         "Use only the supplied tables and columns. Never use DML, DDL, PRAGMA, comments, "
                         "multiple statements, SELECT *, or literal values in filters. Use named :param "
                         "placeholders for every external value. Prefer aggregation and an explicit LIMIT."

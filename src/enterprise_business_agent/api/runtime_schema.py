@@ -28,13 +28,7 @@ _RUNTIME_METADATA = (
 def runtime_table_names() -> list[str]:
     """Every table the runtime role may read or write."""
 
-    return sorted(
-        {
-            table.name
-            for metadata in _RUNTIME_METADATA
-            for table in metadata.tables.values()
-        }
-    )
+    return sorted({table.name for metadata in _RUNTIME_METADATA for table in metadata.tables.values()})
 
 
 def create_runtime_schema(engine: Engine) -> None:
@@ -57,9 +51,7 @@ def drop_runtime_schema(engine: Engine) -> None:
     drop_schema(engine)
 
 
-def grant_runtime_role(
-    engine: Engine, role: str, password: str | None = None
-) -> list[str]:
+def grant_runtime_role(engine: Engine, role: str, password: str | None = None) -> list[str]:
     """Grant DML on runtime tables to a least-privilege PostgreSQL role.
 
     When ``password`` is supplied the role is created or its password rotated.

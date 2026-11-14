@@ -40,9 +40,7 @@ def _ok_body(text: str = '{"ok": true}') -> bytes:
     return json.dumps(
         {
             "model": "glm-5.3-flash",
-            "choices": [
-                {"message": {"content": text}, "finish_reason": "stop"}
-            ],
+            "choices": [{"message": {"content": text}, "finish_reason": "stop"}],
             "usage": {"prompt_tokens": 3, "completion_tokens": 2},
         }
     ).encode()
@@ -95,9 +93,7 @@ class _Provider:
 
         self.server = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
         self.server.daemon_threads = True
-        self.thread = threading.Thread(
-            target=self.server.serve_forever, name="test-provider", daemon=True
-        )
+        self.thread = threading.Thread(target=self.server.serve_forever, name="test-provider", daemon=True)
         self.thread.start()
 
     @property
@@ -149,9 +145,7 @@ def _wait_for(predicate, timeout: float = 1.5) -> bool:
 
 
 def test_total_deadline_bounds_a_trickling_response(provider):
-    provider.responder = lambda count, handler: handler.write_trickle(
-        _ok_body(), delay=0.15
-    )
+    provider.responder = lambda count, handler: handler.write_trickle(_ok_body(), delay=0.15)
     client = GLMClient(
         _settings(
             provider,
@@ -223,9 +217,7 @@ def test_connection_refusal_is_retried_then_classified(provider):
 
 
 def test_authentication_failure_is_not_retried(provider):
-    provider.responder = lambda count, handler: handler.write_json(
-        401, b'{"error":{"message":"bad key"}}'
-    )
+    provider.responder = lambda count, handler: handler.write_json(401, b'{"error":{"message":"bad key"}}')
     client = GLMClient(_settings(provider, llm_max_retries=3))
     with pytest.raises(LLMUnavailable) as excinfo:
         client.complete_json(system="s", prompt="p")
@@ -315,9 +307,7 @@ def test_cancellation_aborts_an_in_flight_request(provider):
     started = time.monotonic()
     try:
         with pytest.raises(LLMCancelled):
-            client.complete_with_tools(
-                system="s", messages=[{"role": "user", "content": "q"}], tools=[]
-            )
+            client.complete_with_tools(system="s", messages=[{"role": "user", "content": "q"}], tools=[])
     finally:
         timer.cancel()
         reset_run_context(tokens)

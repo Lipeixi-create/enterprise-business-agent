@@ -104,9 +104,7 @@ class LiveEvalCase(BaseModel):
     query_check: QueryCheck | None = None
     expect_canonical_status: str = "ok"
     conclusion_terms: list[str] = Field(default_factory=list)
-    allowed_statuses: list[str] = Field(
-        default_factory=lambda: ["completed", "completed_with_warnings"]
-    )
+    allowed_statuses: list[str] = Field(default_factory=lambda: ["completed", "completed_with_warnings"])
     expect_evidence: bool = True
     expect_refusal: bool = False
     refusal_terms: list[str] = Field(default_factory=list)
@@ -225,11 +223,7 @@ class ScriptedPlanLLM:
                 stop_reason="tool_use",
                 model=self.model,
             )
-        summaries = [
-            json.loads(item["content"]).get("summary")
-            for item in messages
-            if item.get("role") == "tool"
-        ]
+        summaries = [json.loads(item["content"]).get("summary") for item in messages if item.get("role") == "tool"]
         text = "；".join(value for value in summaries if value)
         return LLMToolResponse(
             text=f"根据工具结果：{text}",
@@ -288,9 +282,8 @@ def run_agent_case(
                 query_correct = str(observed) == case.query_check.equals
             else:
                 numeric = float(observed)
-                query_correct = (
-                    (case.query_check.min is None or numeric >= case.query_check.min)
-                    and (case.query_check.max is None or numeric <= case.query_check.max)
+                query_correct = (case.query_check.min is None or numeric >= case.query_check.min) and (
+                    case.query_check.max is None or numeric <= case.query_check.max
                 )
         except (KeyError, IndexError, TypeError, ValueError):
             query_correct = False
@@ -335,10 +328,7 @@ def _args_match(actual: Any, expected: Any) -> bool:
     if isinstance(expected, dict):
         if not isinstance(actual, dict):
             return False
-        return all(
-            key in actual and _args_match(actual[key], value)
-            for key, value in expected.items()
-        )
+        return all(key in actual and _args_match(actual[key], value) for key, value in expected.items())
     if isinstance(expected, list):
         if not isinstance(actual, list) or len(actual) != len(expected):
             return False
@@ -384,10 +374,7 @@ def _canonical_check(
             correct = str(observed) == check.equals
         else:
             numeric = float(observed)
-            correct = (
-                (check.min is None or numeric >= check.min)
-                and (check.max is None or numeric <= check.max)
-            )
+            correct = (check.min is None or numeric >= check.min) and (check.max is None or numeric <= check.max)
     except (KeyError, IndexError, TypeError, ValueError) as exc:
         return False, None, result.summary, f"canonical check failed: {type(exc).__name__}"
     return correct, observed, result.summary, None
@@ -466,9 +453,7 @@ class _CountingLLM:
                 "output_tokens": getattr(response, "output_tokens", None),
                 "attempts": getattr(response, "attempts", None),
                 "budget_limited": False,
-                "tools": [
-                    call.name for call in (getattr(response, "tool_calls", None) or [])
-                ],
+                "tools": [call.name for call in (getattr(response, "tool_calls", None) or [])],
                 "has_text": bool(getattr(response, "text", None)),
             }
         )
@@ -575,11 +560,7 @@ def _report_dimensions(
     document = stored.report
 
     cited: set[str] = set()
-    for conclusion in (
-        document.conclusions
-        + document.anomalies_and_contributions
-        + document.cross_domain
-    ):
+    for conclusion in document.conclusions + document.anomalies_and_contributions + document.cross_domain:
         cited.update(conclusion.evidence_ids)
     for section in document.domain_analysis:
         cited.update(section.evidence_ids)
@@ -588,9 +569,7 @@ def _report_dimensions(
         if card.change is not None:
             cited.add(card.change.evidence_id)
 
-    completeness = (
-        round(len(cited & evidence_ids) / len(evidence_ids), 4) if evidence_ids else None
-    )
+    completeness = round(len(cited & evidence_ids) / len(evidence_ids), 4) if evidence_ids else None
 
     finding_correct = True
     for finding in findings:
@@ -598,11 +577,7 @@ def _report_dimensions(
             finding_correct = False
             break
     if finding_correct:
-        for conclusion in (
-            document.conclusions
-            + document.anomalies_and_contributions
-            + document.cross_domain
-        ):
+        for conclusion in document.conclusions + document.anomalies_and_contributions + document.cross_domain:
             if not set(conclusion.finding_ids) <= finding_ids:
                 finding_correct = False
                 break
@@ -621,19 +596,13 @@ def _report_dimensions(
         "recommendations": bool(document.recommendations),
         "next_validation": bool(document.next_validation),
         "data_scope": bool(
-            document.data_scope.metric_codes
-            or document.data_scope.time_ranges
-            or document.data_scope.source_tables
+            document.data_scope.metric_codes or document.data_scope.time_ranges or document.data_scope.source_tables
         ),
     }
     # Recommendations only apply when the report raises something actionable.
     # A single-value lookup should not be marked incomplete for correctly
     # declining to invent advice.
-    actionable = bool(
-        len(document.conclusions) > 1
-        or document.anomalies_and_contributions
-        or document.cross_domain
-    )
+    actionable = bool(len(document.conclusions) > 1 or document.anomalies_and_contributions or document.cross_domain)
     applicable = {name: True for name in _REPORT_BLOCKS}
     applicable["recommendations"] = actionable
     for name in _REPORT_BLOCKS:
@@ -723,10 +692,7 @@ def _evidence_chain_issues(
                     "expected_run_id": run_id,
                 }
             )
-        unknown = sorted(
-            {resolve_evidence_id(value) for value in finding.evidence_ids}
-            - known_evidence
-        )
+        unknown = sorted({resolve_evidence_id(value) for value in finding.evidence_ids} - known_evidence)
         if unknown:
             issues.append(
                 {
@@ -755,13 +721,7 @@ def _evidence_chain_issues(
                     "expected_case_id": case_id,
                 }
             )
-        unknown = sorted(
-            {
-                resolve_evidence_id(value)
-                for value in message.get("evidence_ids") or []
-            }
-            - known_evidence
-        )
+        unknown = sorted({resolve_evidence_id(value) for value in message.get("evidence_ids") or []} - known_evidence)
         if unknown:
             issues.append(
                 {
@@ -867,9 +827,7 @@ _DERIVED_COLUMN_HINTS = ("贡献", "变化", "增减", "差额", "差异")
 # Below this, a number in prose is usually a count, an ordinal or a date part
 # rather than a business value, so it is not treated as an unsourced figure.
 _BUSINESS_NUMBER_FLOOR = Decimal("1000")
-_CITATION_RE = re.compile(
-    r"\[\s*(?:E|EV|ev|evidence)[-_ ]?\d+\s*\]", re.IGNORECASE
-)
+_CITATION_RE = re.compile(r"\[\s*(?:E|EV|ev|evidence)[-_ ]?\d+\s*\]", re.IGNORECASE)
 _EVIDENCE_ID_RE = re.compile(r"\b[0-9a-f]{6,}(?:-[A-Za-z0-9]+)+-e\d+\b")
 # Call ids look like ``call_-7121727578372566844-e1``. Their digits are not
 # business values, so they must be blanked before any number extraction;
@@ -1122,9 +1080,7 @@ def _pipe_cells(fragment: str) -> list[tuple[str, int, int]] | None:
 _TABLE_SEPARATOR_RE = re.compile(r"^\|?[\s:|-]+\|?$")
 
 
-def _table_header_cells(
-    text: str, segments: list[tuple[int, int]], index: int
-) -> list[tuple[str, int, int]] | None:
+def _table_header_cells(text: str, segments: list[tuple[int, int]], index: int) -> list[tuple[str, int, int]] | None:
     """Return the header cells of the table that ``index`` belongs to.
 
     A Markdown table splits into one segment per row, so the metric term lives
@@ -1224,11 +1180,7 @@ def _terms_apply(
             ),
             None,
         )
-        term_columns = [
-            column
-            for column, (cell, _, _) in enumerate(header)
-            if any(term in cell for term in terms)
-        ]
+        term_columns = [column for column, (cell, _, _) in enumerate(header) if any(term in cell for term in terms)]
         if term_columns:
             # The figure has to sit under the metric's own column; otherwise a
             # second metric in the same table could vouch for it. A derived
@@ -1359,11 +1311,7 @@ def _section_heading_names(
             return True
         if fragment.startswith("|"):
             continue
-        label_like = (
-            _is_heading(fragment)
-            or _is_label(fragment)
-            or fragment.rstrip().endswith(("：", ":"))
-        )
+        label_like = _is_heading(fragment) or _is_label(fragment) or fragment.rstrip().endswith(("：", ":"))
         bullet_like = bool(re.match(r"^(?:[-*•]|\d+[.)、])\s*", fragment))
         if label_like or bullet_like:
             if any(hint in fragment for hint in _METRIC_LABEL_HINTS):
@@ -1404,9 +1352,7 @@ def _number_matches(
     starts = [start for start, _ in segments]
     for start, _, candidate, _ in _number_tokens(answer):
         index = bisect_right(starts, start) - 1
-        if not _terms_apply(
-            answer, segments, max(index, 0), terms or [], token_start=start
-        ):
+        if not _terms_apply(answer, segments, max(index, 0), terms or [], token_start=start):
             continue
         for item in targets:
             if item == 0:
@@ -1418,9 +1364,7 @@ def _number_matches(
     return False
 
 
-def _value_is_sourced(
-    value: Decimal, sources: list[Decimal], *, tolerance: float = 0.005
-) -> bool:
+def _value_is_sourced(value: Decimal, sources: list[Decimal], *, tolerance: float = 0.005) -> bool:
     tolerance_value = Decimal(str(tolerance))
     for source in sources:
         for candidate in (
@@ -1458,9 +1402,7 @@ def _redact_archive_text(text: str) -> str:
     )
 
 
-def _archive_tool_messages(
-    run_id: str, case_id: str, messages: list[Any]
-) -> list[dict[str, Any]]:
+def _archive_tool_messages(run_id: str, case_id: str, messages: list[Any]) -> list[dict[str, Any]]:
     archived: list[dict[str, Any]] = []
     for message in messages or []:
         content = getattr(message, "content", "") or ""
@@ -1517,15 +1459,11 @@ def _source_numbers(
             if not getattr(message, "trusted", False):
                 continue
             payload = getattr(message, "visible_data", None) or {}
-            values.extend(
-                _numbers_in(json.dumps(payload, ensure_ascii=False, default=str))
-            )
+            values.extend(_numbers_in(json.dumps(payload, ensure_ascii=False, default=str)))
         return values
     for _, _, result in recorded.values():
         payload = {"summary": result.summary, "data": result.data}
-        values.extend(
-            _numbers_in(json.dumps(payload, ensure_ascii=False, default=str))
-        )
+        values.extend(_numbers_in(json.dumps(payload, ensure_ascii=False, default=str)))
     return values
 
 
@@ -1543,9 +1481,7 @@ def _is_calendar_year(text: str, start: int, end: int, value: Decimal) -> bool:
     return before in {"-", "/"} and bool(re.match(r"\d{1,2}(\D|$)", text[end : end + 3]))
 
 
-def _unsourced_numbers(
-    answer: str, sources: list[Decimal]
-) -> list[str]:
+def _unsourced_numbers(answer: str, sources: list[Decimal]) -> list[str]:
     """Business-scale numbers in the answer that no tool result produced.
 
     A stated difference, sum or ratio of returned figures is verifiable from
@@ -1600,9 +1536,7 @@ def _repeated_calls(actual: list[PlannedCall]) -> int:
     return sum(count - 1 for count in counts.values() if count > 1)
 
 
-def _match_alternative(
-    plan: list[PlannedCall], actual: list[PlannedCall]
-) -> PlanMatch:
+def _match_alternative(plan: list[PlannedCall], actual: list[PlannedCall]) -> PlanMatch:
     required_names = Counter(item.tool for item in plan)
     actual_names = Counter(item.tool for item in actual)
     selection = all(actual_names[name] >= count for name, count in required_names.items())
@@ -1639,9 +1573,7 @@ def _match_alternative(
 
 
 def _best_plan(case: LiveEvalCase, actual: list[PlannedCall]) -> PlanMatch:
-    alternatives = case.plan_alternatives or (
-        [case.required_calls] if case.required_calls else []
-    )
+    alternatives = case.plan_alternatives or ([case.required_calls] if case.required_calls else [])
     if not alternatives:
         return PlanMatch(
             selection=True,
@@ -1659,9 +1591,7 @@ def _best_plan(case: LiveEvalCase, actual: list[PlannedCall]) -> PlanMatch:
             candidate.order,
         ) > (best.selection, best.arguments, best.order):
             best = candidate
-    return best or PlanMatch(
-        selection=False, arguments=False, order=False, repeated_calls=0
-    )
+    return best or PlanMatch(selection=False, arguments=False, order=False, repeated_calls=0)
 
 
 def _truncated_warning(warnings: list[str]) -> bool:
@@ -1756,10 +1686,7 @@ def run_live_agent_case(
         runtime.llm = original_llm
         runtime.registry = original_registry
     duration_ms = round((time.monotonic() - started) * 1000, 3)
-    actual = [
-        PlannedCall(tool=item.tool, arguments=item.arguments)
-        for item in result.tool_calls
-    ]
+    actual = [PlannedCall(tool=item.tool, arguments=item.arguments) for item in result.tool_calls]
     # Per-decision trace: the loop's own steps, the LLM calls behind them and
     # the tool calls with their evidence ids. This is what makes a real run
     # diagnosable without replaying the tools offline afterwards.
@@ -1836,10 +1763,7 @@ def run_live_agent_case(
             effective_principal,
             expected_status=case.expect_canonical_status,
         )
-        actual_match = any(
-            item.tool == check.tool and _args_match(item.arguments, check.arguments)
-            for item in actual
-        )
+        actual_match = any(item.tool == check.tool and _args_match(item.arguments, check.arguments) for item in actual)
         query_correct = canonical_ok and actual_match
 
     evidence_count = len(result.evidence)
@@ -1849,27 +1773,17 @@ def run_live_agent_case(
     else:
         evidence_sufficient = True
 
-    unverified_warning = any(
-        "无法在工具证据中直接核对" in item for item in result.warnings
-    )
-    unsupported_relation = any(
-        "业务关系不一致" in item for item in result.warnings
-    )
-    unsupported_claim = (
-        case.expect_evidence and evidence_count == 0 and bool(result.final_answer)
-    )
-    conclusion_overreach = (
-        unverified_warning or unsupported_relation or unsupported_claim
-    )
+    unverified_warning = any("无法在工具证据中直接核对" in item for item in result.warnings)
+    unsupported_relation = any("业务关系不一致" in item for item in result.warnings)
+    unsupported_claim = case.expect_evidence and evidence_count == 0 and bool(result.final_answer)
+    conclusion_overreach = unverified_warning or unsupported_relation or unsupported_claim
     answer = result.final_answer or ""
     missing_terms = [term for term in case.conclusion_terms if term not in answer]
     task_completed = result.status.value in case.allowed_statuses
 
     report_metrics: dict[str, Any] = {}
     report_error: str | None = None
-    archived_messages = _archive_tool_messages(
-        run_id, case.id, result.tool_messages
-    )
+    archived_messages = _archive_tool_messages(run_id, case.id, result.tool_messages)
     try:
         report_metrics = _report_dimensions(
             recorded=recorder.results,
@@ -1899,33 +1813,22 @@ def run_live_agent_case(
         answer_citations_valid = all(item in known_evidence_ids for item in cited_ids)
 
     number_accuracy: bool | None = None
-    if (
-        case.expect_number
-        and _numeric(observed) is not None
-        and not case.expect_refusal
-    ):
-        number_accuracy = _number_matches(
-            answer, observed, terms=case.conclusion_terms
-        )
+    if case.expect_number and _numeric(observed) is not None and not case.expect_refusal:
+        number_accuracy = _number_matches(answer, observed, terms=case.conclusion_terms)
 
     refusal_terms = case.refusal_terms or DEFAULT_REFUSAL_TERMS
     refused = any(term in answer for term in refusal_terms)
     # An authorization failure stops the run before the model gets another
     # turn, so there may be no prose answer at all. That stop *is* the
     # refusal: record it from the structured error rather than requiring text.
-    policy_blocked = any(
-        item.get("code") == "permission_denied" for item in result.errors
-    )
+    policy_blocked = any(item.get("code") == "permission_denied" for item in result.errors)
     refusal_correct: bool | None = None
     safety_intercepted: bool | None = None
     if case.expect_refusal:
         refusal_correct = refused or policy_blocked
         safety_intercepted = (refused or policy_blocked) and not forbidden_hit
 
-    narrative_complete = (
-        len(answer.strip()) >= case.min_answer_chars
-        and not _truncated_warning(result.warnings)
-    )
+    narrative_complete = len(answer.strip()) >= case.min_answer_chars and not _truncated_warning(result.warnings)
 
     passed = (
         selection_correct
@@ -1961,9 +1864,7 @@ def run_live_agent_case(
                 "number_accuracy": number_accuracy,
                 "evidence_chain_valid": report_metrics.get("evidence_chain_valid"),
                 "refusal_correct": refusal_correct,
-                "narrative_complete": (
-                    None if case.expect_refusal else narrative_complete
-                ),
+                "narrative_complete": (None if case.expect_refusal else narrative_complete),
                 "answer_citations_valid": answer_citations_valid,
             }
         )
@@ -1992,9 +1893,7 @@ def run_live_agent_case(
         prompt_version=result.prompt_version,
         final_answer=result.final_answer,
         actual_plan=actual,
-        matching_summaries=[
-            item.summary for item in result.tool_calls if item.summary is not None
-        ],
+        matching_summaries=[item.summary for item in result.tool_calls if item.summary is not None],
         canonical_summary=canonical_summary,
         observed=observed,
         warnings=result.warnings,
@@ -2003,9 +1902,7 @@ def run_live_agent_case(
         tool_calls=len(result.tool_calls),
         attempted_tool_calls=len(result.tool_calls) + len(result.blocked_tool_calls),
         successful_data_tool_calls=sum(
-            1
-            for item in result.tool_calls
-            if item.tool in _DATA_QUERY_TOOLS and item.status == "ok"
+            1 for item in result.tool_calls if item.tool in _DATA_QUERY_TOOLS and item.status == "ok"
         ),
         decisions=decisions,
         llm_calls=list(counter.events) if counter is not None else [],
@@ -2021,20 +1918,14 @@ def run_live_agent_case(
         llm_tokens=result.llm_tokens,
         duration_ms=duration_ms,
         model_calls=counter.calls if counter is not None else 0,
-        evidence_citation_completeness=report_metrics.get(
-            "evidence_citation_completeness"
-        ),
+        evidence_citation_completeness=report_metrics.get("evidence_citation_completeness"),
         finding_citation_correct=report_metrics.get("finding_citation_correct"),
         numeric_validation_passed=report_metrics.get("numeric_validation_passed"),
         numeric_issue_count=int(report_metrics.get("numeric_issue_count") or 0),
-        report_structure_completeness=report_metrics.get(
-            "report_structure_completeness"
-        ),
+        report_structure_completeness=report_metrics.get("report_structure_completeness"),
         report_narrative_mode=report_metrics.get("report_narrative_mode"),
         evidence_chain_valid=report_metrics.get("evidence_chain_valid"),
-        evidence_chain_issue_count=int(
-            report_metrics.get("evidence_chain_issue_count") or 0
-        ),
+        evidence_chain_issue_count=int(report_metrics.get("evidence_chain_issue_count") or 0),
         evidence_chain_issues=list(report_metrics.get("evidence_chain_issues") or []),
         number_accuracy=number_accuracy,
         answer_number_provenance=answer_number_provenance,
@@ -2049,10 +1940,7 @@ def run_live_agent_case(
             "role": effective_principal.role,
             "require_order": case.require_order,
             "required_calls": [item.model_dump() for item in case.required_calls],
-            "plan_alternatives": [
-                [item.model_dump() for item in plan]
-                for plan in case.plan_alternatives
-            ],
+            "plan_alternatives": [[item.model_dump() for item in plan] for plan in case.plan_alternatives],
             "matched_calls": [item.model_dump() for item in actual],
             "canonical_error": canonical_error,
             "expected_canonical_status": case.expect_canonical_status,
@@ -2063,13 +1951,9 @@ def run_live_agent_case(
             "relation_issues": list(result.relation_issues),
             "relation_validation_passed": not result.relation_issues,
             "evidence_chain_valid": report_metrics.get("evidence_chain_valid"),
-            "evidence_chain_issues": list(
-                report_metrics.get("evidence_chain_issues") or []
-            ),
+            "evidence_chain_issues": list(report_metrics.get("evidence_chain_issues") or []),
             "tool_messages_archived": len(archived_messages),
-            "tool_messages_content_truncated": sum(
-                1 for item in archived_messages if item["content_truncated"]
-            ),
+            "tool_messages_content_truncated": sum(1 for item in archived_messages if item["content_truncated"]),
             "unsupported_claim": unsupported_claim,
             "missing_conclusion_terms": missing_terms,
             "allowed_statuses": case.allowed_statuses,
@@ -2131,9 +2015,7 @@ def _metric_block(records: list[dict[str, Any]]) -> dict[str, Any]:
         block[label] = _rate(sum(1 for value in values if value), len(values))
         block[f"{label}_evaluated"] = len(values)
     for label, field in _RATE_METRICS:
-        values = [
-            float(item[field]) for item in records if item.get(field) is not None
-        ]
+        values = [float(item[field]) for item in records if item.get(field) is not None]
         block[label] = round(sum(values) / len(values), 4) if values else None
         block[f"{label}_evaluated"] = len(values)
     durations = [float(item.get("duration_ms") or 0) for item in records]
@@ -2142,74 +2024,38 @@ def _metric_block(records: list[dict[str, Any]]) -> dict[str, Any]:
             "p50_latency_ms": _percentile(durations, 0.5),
             "p95_latency_ms": _percentile(durations, 0.95),
             "avg_llm_latency_ms": round(
-                sum(float(item.get("llm_latency_ms") or 0) for item in records)
-                / len(records),
+                sum(float(item.get("llm_latency_ms") or 0) for item in records) / len(records),
                 3,
             )
             if records
             else None,
             "model_calls": sum(int(item.get("model_calls") or 0) for item in records),
-            "extra_tool_calls": sum(
-                int(item.get("extra_tool_calls") or 0) for item in records
-            ),
-            "repeated_tool_calls": sum(
-                int(item.get("repeated_tool_calls") or 0) for item in records
-            ),
+            "extra_tool_calls": sum(int(item.get("extra_tool_calls") or 0) for item in records),
+            "repeated_tool_calls": sum(int(item.get("repeated_tool_calls") or 0) for item in records),
             # ``repeated_tool_calls`` is the plan-level repeat count. Runtime
             # dedupe blocks and actual executions are separate numbers and must
             # never be summed into the same field.
-            "planned_repeated_tool_calls": sum(
-                int(item.get("repeated_tool_calls") or 0) for item in records
-            ),
+            "planned_repeated_tool_calls": sum(int(item.get("repeated_tool_calls") or 0) for item in records),
             "attempted_tool_calls": sum(
-                int(
-                    item.get("attempted_tool_calls")
-                    or item.get("tool_calls")
-                    or 0
-                )
-                + (
-                    int(item.get("duplicate_tool_calls") or 0)
-                    if item.get("attempted_tool_calls") is None
-                    else 0
-                )
+                int(item.get("attempted_tool_calls") or item.get("tool_calls") or 0)
+                + (int(item.get("duplicate_tool_calls") or 0) if item.get("attempted_tool_calls") is None else 0)
                 for item in records
             ),
-            "executed_tool_calls": sum(
-                int(item.get("tool_calls") or 0) for item in records
-            ),
-            "semantic_dedupe_blocks": sum(
-                int(item.get("duplicate_tool_calls") or 0) for item in records
-            ),
-            "successful_data_tool_calls": sum(
-                int(item.get("successful_data_tool_calls") or 0) for item in records
-            ),
-            "tool_messages_archived": sum(
-                len(item.get("tool_messages") or []) for item in records
-            ),
+            "executed_tool_calls": sum(int(item.get("tool_calls") or 0) for item in records),
+            "semantic_dedupe_blocks": sum(int(item.get("duplicate_tool_calls") or 0) for item in records),
+            "successful_data_tool_calls": sum(int(item.get("successful_data_tool_calls") or 0) for item in records),
+            "tool_messages_archived": sum(len(item.get("tool_messages") or []) for item in records),
             "tool_messages_content_truncated": sum(
-                1
-                for item in records
-                for message in item.get("tool_messages") or []
-                if message.get("content_truncated")
+                1 for item in records for message in item.get("tool_messages") or [] if message.get("content_truncated")
             ),
             "relation_validation_failures": sum(
                 1 for item in records if item.get("relation_validation_passed") is False
             ),
         }
     )
-    token_records = [
-        item
-        for item in records
-        if isinstance(item.get("llm_tokens"), dict) and item.get("llm_tokens")
-    ]
-    block["input_tokens"] = sum(
-        int((item.get("llm_tokens") or {}).get("input") or 0)
-        for item in token_records
-    )
-    block["output_tokens"] = sum(
-        int((item.get("llm_tokens") or {}).get("output") or 0)
-        for item in token_records
-    )
+    token_records = [item for item in records if isinstance(item.get("llm_tokens"), dict) and item.get("llm_tokens")]
+    block["input_tokens"] = sum(int((item.get("llm_tokens") or {}).get("input") or 0) for item in token_records)
+    block["output_tokens"] = sum(int((item.get("llm_tokens") or {}).get("output") or 0) for item in token_records)
     block["token_records"] = len(token_records)
     block["token_records_missing"] = len(records) - len(token_records)
     # Tokens are only aggregated from records that actually carry independent

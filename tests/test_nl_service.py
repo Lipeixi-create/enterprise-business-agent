@@ -34,9 +34,7 @@ def settings() -> Settings:
 
 def _analyze(session, settings, question, *, llm=None, **kwargs):
     analyzer = NaturalLanguageAnalyzer(session, settings, llm_client=llm)
-    return analyzer.analyze(
-        NaturalLanguageRequest(question=question, as_of=date(2025, 4, 1), **kwargs)
-    )
+    return analyzer.analyze(NaturalLanguageRequest(question=question, as_of=date(2025, 4, 1), **kwargs))
 
 
 def test_semantic_query_end_to_end(fixed_dataset, settings):

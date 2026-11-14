@@ -11,7 +11,6 @@ from pydantic import BaseModel, Field
 
 from .analysis.time_ranges import shift_month
 
-
 DEFAULT_DATABASE_URL = "sqlite:///./enterprise_business_agent.db"
 DEFAULT_ANTHROPIC_BASE_URL = "https://api.anthropic.com/v1/messages"
 DEFAULT_GLM_BASE_URL = "https://open.bigmodel.cn/api/paas/v4/"
@@ -117,16 +116,12 @@ class Settings(BaseModel):
     agent_max_total_tokens: int = Field(default=120_000, ge=1_000, le=1_000_000)
     agent_invalid_action_max_retries: int = Field(default=1, ge=0, le=3)
     agent_llm_max_retries: int = Field(default=1, ge=0, le=3)
-    agent_run_max_lifecycle_seconds: float = Field(
-        default=3_600.0, gt=0, le=86_400
-    )
+    agent_run_max_lifecycle_seconds: float = Field(default=3_600.0, gt=0, le=86_400)
 
     run_store_url: str | None = Field(default=None)
     run_store_ttl_seconds: float = Field(default=86_400.0, gt=0)
     run_lease_seconds: float = Field(default=60.0, ge=1, le=3_600)
-    run_retention_completed_seconds: float = Field(
-        default=2_592_000.0, ge=0
-    )
+    run_retention_completed_seconds: float = Field(default=2_592_000.0, ge=0)
     run_retention_failed_seconds: float = Field(default=1_209_600.0, ge=0)
     run_retention_cancelled_seconds: float = Field(default=604_800.0, ge=0)
     run_retention_unfinished_seconds: float = Field(default=259_200.0, ge=0)
@@ -137,9 +132,7 @@ class Settings(BaseModel):
     phase5_narrative_enabled: bool = Field(default=True)
     phase5_max_fix_attempts: int = Field(default=1, ge=0, le=3)
     phase5_narrative_max_tokens: int = Field(default=800, ge=128, le=4_096)
-    agent_final_continuation_max_tokens: int = Field(
-        default=800, ge=64, le=4_096
-    )
+    agent_final_continuation_max_tokens: int = Field(default=800, ge=64, le=4_096)
 
     otel_enabled: bool = False
     otel_service_name: str = Field(default="enterprise-business-agent")
@@ -210,8 +203,7 @@ class Settings(BaseModel):
         provider = self.llm_provider.strip().lower()
         if provider not in SUPPORTED_LLM_PROVIDERS:
             issues.append(
-                f"LLM_PROVIDER={self.llm_provider!r}; supported providers are "
-                f"{sorted(SUPPORTED_LLM_PROVIDERS)}"
+                f"LLM_PROVIDER={self.llm_provider!r}; supported providers are {sorted(SUPPORTED_LLM_PROVIDERS)}"
             )
             return issues
         parsed = urlparse(self.llm_base_url)
@@ -219,24 +211,15 @@ class Settings(BaseModel):
             issues.append("LLM_BASE_URL must be an absolute http(s) URL")
         if provider == "anthropic":
             if not self.llm_model.lower().startswith("claude"):
-                issues.append(
-                    f"LLM_MODEL={self.llm_model!r} is not an Anthropic Claude model id"
-                )
+                issues.append(f"LLM_MODEL={self.llm_model!r} is not an Anthropic Claude model id")
             if not parsed.path.rstrip("/").endswith("/v1/messages"):
                 issues.append("LLM_BASE_URL path must end with /v1/messages")
         else:
             if not self.llm_model.lower().startswith("glm"):
-                issues.append(
-                    f"LLM_MODEL={self.llm_model!r} is not a GLM model id"
-                )
+                issues.append(f"LLM_MODEL={self.llm_model!r} is not a GLM model id")
             if "/chat/completions" in parsed.path:
-                issues.append(
-                    "LLM_BASE_URL must be the API base URL, not the "
-                    "/chat/completions endpoint"
-                )
-            elif "bigmodel.cn" in (parsed.hostname or "") and not parsed.path.rstrip(
-                "/"
-            ).endswith("/api/paas/v4"):
+                issues.append("LLM_BASE_URL must be the API base URL, not the /chat/completions endpoint")
+            elif "bigmodel.cn" in (parsed.hostname or "") and not parsed.path.rstrip("/").endswith("/api/paas/v4"):
                 issues.append("GLM LLM_BASE_URL path must end with /api/paas/v4")
         return issues
 
@@ -356,67 +339,40 @@ def get_settings(
         agent_tool_max_retries=int(os.getenv("AGENT_TOOL_MAX_RETRIES", "1")),
         agent_max_consecutive_failures=int(os.getenv("AGENT_MAX_CONSECUTIVE_FAILURES", "2")),
         agent_max_total_tokens=int(os.getenv("AGENT_MAX_TOTAL_TOKENS", "120000")),
-        agent_invalid_action_max_retries=int(
-            os.getenv("AGENT_INVALID_ACTION_MAX_RETRIES", "1")
-        ),
+        agent_invalid_action_max_retries=int(os.getenv("AGENT_INVALID_ACTION_MAX_RETRIES", "1")),
         agent_llm_max_retries=int(os.getenv("AGENT_LLM_MAX_RETRIES", "1")),
-        agent_run_max_lifecycle_seconds=float(
-            os.getenv("AGENT_RUN_MAX_LIFECYCLE_SECONDS", "3600")
-        ),
+        agent_run_max_lifecycle_seconds=float(os.getenv("AGENT_RUN_MAX_LIFECYCLE_SECONDS", "3600")),
         run_store_url=_run_store_url(),
         run_store_ttl_seconds=float(os.getenv("RUN_STORE_TTL_SECONDS", "86400")),
         run_lease_seconds=float(os.getenv("RUN_LEASE_SECONDS", "60")),
-        run_retention_completed_seconds=float(
-            os.getenv("RUN_RETENTION_COMPLETED_SECONDS", "2592000")
-        ),
-        run_retention_failed_seconds=float(
-            os.getenv("RUN_RETENTION_FAILED_SECONDS", "1209600")
-        ),
-        run_retention_cancelled_seconds=float(
-            os.getenv("RUN_RETENTION_CANCELLED_SECONDS", "604800")
-        ),
-        run_retention_unfinished_seconds=float(
-            os.getenv("RUN_RETENTION_UNFINISHED_SECONDS", "259200")
-        ),
+        run_retention_completed_seconds=float(os.getenv("RUN_RETENTION_COMPLETED_SECONDS", "2592000")),
+        run_retention_failed_seconds=float(os.getenv("RUN_RETENTION_FAILED_SECONDS", "1209600")),
+        run_retention_cancelled_seconds=float(os.getenv("RUN_RETENTION_CANCELLED_SECONDS", "604800")),
+        run_retention_unfinished_seconds=float(os.getenv("RUN_RETENTION_UNFINISHED_SECONDS", "259200")),
         run_cleanup_dry_run=_env_bool("RUN_CLEANUP_DRY_RUN", False),
         run_cleanup_batch_limit=int(os.getenv("RUN_CLEANUP_BATCH_LIMIT", "1000")),
         phase5_enabled=_env_bool("EBA_PHASE5_ENABLED", True),
         phase5_narrative_enabled=_env_bool("EBA_PHASE5_LLM_NARRATIVE", True),
         phase5_max_fix_attempts=int(os.getenv("EBA_PHASE5_MAX_FIX_ATTEMPTS", "1")),
-        phase5_narrative_max_tokens=int(
-            os.getenv("EBA_PHASE5_NARRATIVE_MAX_TOKENS", "800")
-        ),
-        agent_final_continuation_max_tokens=int(
-            os.getenv("AGENT_FINAL_CONTINUATION_MAX_TOKENS", "800")
-        ),
+        phase5_narrative_max_tokens=int(os.getenv("EBA_PHASE5_NARRATIVE_MAX_TOKENS", "800")),
+        agent_final_continuation_max_tokens=int(os.getenv("AGENT_FINAL_CONTINUATION_MAX_TOKENS", "800")),
         otel_enabled=_env_bool("EBA_OTEL_ENABLED", False),
-        otel_service_name=os.getenv(
-            "EBA_OTEL_SERVICE_NAME", "enterprise-business-agent"
-        ),
+        otel_service_name=os.getenv("EBA_OTEL_SERVICE_NAME", "enterprise-business-agent"),
         otel_exporter=os.getenv(
             "EBA_OTEL_EXPORTER",
-            "otlp" if (
-                os.getenv("EBA_OTEL_EXPORTER_ENDPOINT")
-                or os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT")
-            ) else "otlp",
+            "otlp" if (os.getenv("EBA_OTEL_EXPORTER_ENDPOINT") or os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT")) else "otlp",
         ),
         otel_exporter_endpoint=os.getenv("EBA_OTEL_EXPORTER_ENDPOINT")
         or os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT")
         or None,
-        otel_trace_file=os.getenv(
-            "EBA_OTEL_TRACE_FILE", "data/traces/eba-spans.jsonl"
-        ),
+        otel_trace_file=os.getenv("EBA_OTEL_TRACE_FILE", "data/traces/eba-spans.jsonl"),
         otel_sample_ratio=float(os.getenv("EBA_OTEL_SAMPLE_RATIO", "1.0")),
         alert_failure_rate=float(os.getenv("EBA_ALERT_FAILURE_RATE", "0.25")),
         alert_p95_seconds=float(os.getenv("EBA_ALERT_P95_SECONDS", "300")),
         alert_pending_approvals=int(os.getenv("EBA_ALERT_PENDING_APPROVALS", "10")),
         alert_min_runs=int(os.getenv("EBA_ALERT_MIN_RUNS", "5")),
-        model_input_price_per_million=_env_optional_float(
-            "EBA_MODEL_INPUT_PRICE_PER_MTOKENS"
-        ),
-        model_output_price_per_million=_env_optional_float(
-            "EBA_MODEL_OUTPUT_PRICE_PER_MTOKENS"
-        ),
+        model_input_price_per_million=_env_optional_float("EBA_MODEL_INPUT_PRICE_PER_MTOKENS"),
+        model_output_price_per_million=_env_optional_float("EBA_MODEL_OUTPUT_PRICE_PER_MTOKENS"),
         model_price_source=os.getenv("EBA_MODEL_PRICE_SOURCE", "unconfigured"),
         model_price_currency=os.getenv("EBA_MODEL_PRICE_CURRENCY", "CNY"),
         llm_provider=provider,
@@ -424,31 +380,15 @@ def get_settings(
         llm_api_key=_llm_api_key(provider),
         llm_base_url=os.getenv("LLM_BASE_URL", _default_llm_base_url(provider)),
         llm_timeout_seconds=float(os.getenv("LLM_TIMEOUT_SECONDS", "120")),
-        llm_connect_timeout_seconds=float(
-            os.getenv("LLM_CONNECT_TIMEOUT_SECONDS", "10")
-        ),
+        llm_connect_timeout_seconds=float(os.getenv("LLM_CONNECT_TIMEOUT_SECONDS", "10")),
         llm_read_timeout_seconds=float(os.getenv("LLM_READ_TIMEOUT_SECONDS", "60")),
         llm_max_retries=int(os.getenv("LLM_MAX_RETRIES", "1")),
-        llm_retry_backoff_base_seconds=float(
-            os.getenv("LLM_RETRY_BACKOFF_BASE_SECONDS", "0.5")
-        ),
-        llm_retry_backoff_max_seconds=float(
-            os.getenv("LLM_RETRY_BACKOFF_MAX_SECONDS", "8")
-        ),
-        llm_retry_after_max_seconds=float(
-            os.getenv("LLM_RETRY_AFTER_MAX_SECONDS", "30")
-        ),
-        llm_circuit_failure_threshold=int(
-            os.getenv("LLM_CIRCUIT_FAILURE_THRESHOLD", "3")
-        ),
-        llm_circuit_reset_seconds=float(
-            os.getenv("LLM_CIRCUIT_RESET_SECONDS", "30")
-        ),
+        llm_retry_backoff_base_seconds=float(os.getenv("LLM_RETRY_BACKOFF_BASE_SECONDS", "0.5")),
+        llm_retry_backoff_max_seconds=float(os.getenv("LLM_RETRY_BACKOFF_MAX_SECONDS", "8")),
+        llm_retry_after_max_seconds=float(os.getenv("LLM_RETRY_AFTER_MAX_SECONDS", "30")),
+        llm_circuit_failure_threshold=int(os.getenv("LLM_CIRCUIT_FAILURE_THRESHOLD", "3")),
+        llm_circuit_reset_seconds=float(os.getenv("LLM_CIRCUIT_RESET_SECONDS", "30")),
         llm_max_tokens=int(os.getenv("LLM_MAX_TOKENS", "4000")),
         llm_temperature=float(os.getenv("LLM_TEMPERATURE", "0")),
-        llm_seed=(
-            int(os.environ["LLM_SEED"])
-            if os.getenv("LLM_SEED", "").strip()
-            else None
-        ),
+        llm_seed=(int(os.environ["LLM_SEED"]) if os.getenv("LLM_SEED", "").strip() else None),
     )

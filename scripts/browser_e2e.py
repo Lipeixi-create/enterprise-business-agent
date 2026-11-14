@@ -16,7 +16,6 @@ from __future__ import annotations
 import argparse
 import base64
 import json
-import os
 import shutil
 import socket
 import subprocess
@@ -89,17 +88,10 @@ class Chrome:
         deadline = time.monotonic() + timeout
         while time.monotonic() < deadline:
             try:
-                with urllib.request.urlopen(
-                    f"http://127.0.0.1:{self.port}/json/list", timeout=2
-                ) as response:
+                with urllib.request.urlopen(f"http://127.0.0.1:{self.port}/json/list", timeout=2) as response:
                     pages = json.load(response)
                 page = next(
-                    (
-                        item
-                        for item in pages
-                        if item.get("type") == "page"
-                        and item.get("webSocketDebuggerUrl")
-                    ),
+                    (item for item in pages if item.get("type") == "page" and item.get("webSocketDebuggerUrl")),
                     None,
                 )
                 if page is not None:
@@ -121,9 +113,7 @@ class Chrome:
             raise BrowserError("CDP session is not connected")
         self.next_id += 1
         request_id = self.next_id
-        self.ws.send(
-            json.dumps({"id": request_id, "method": method, "params": params or {}})
-        )
+        self.ws.send(json.dumps({"id": request_id, "method": method, "params": params or {}}))
         deadline = time.monotonic() + timeout
         while True:
             remaining = deadline - time.monotonic()
@@ -175,9 +165,7 @@ class Chrome:
 
     def screenshot(self, name: str) -> str:
         self.screenshot_index += 1
-        result = self.send(
-            "Page.captureScreenshot", {"format": "png", "captureBeyondViewport": True}
-        )
+        result = self.send("Page.captureScreenshot", {"format": "png", "captureBeyondViewport": True})
         path = self.output_dir / f"{self.screenshot_index:02d}-{name}.png"
         path.write_bytes(base64.b64decode(result["data"]))
         return path.name
@@ -232,12 +220,8 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--base-url", default="http://127.0.0.1:8000")
     parser.add_argument("--keys-file", default="/tmp/eba-phase93-keys.json")
-    parser.add_argument(
-        "--output-dir", default="data/exports/phase9_3_browser"
-    )
-    parser.add_argument(
-        "--question", default="分析2025年12月华东销售下降原因"
-    )
+    parser.add_argument("--output-dir", default="data/exports/phase9_3_browser")
+    parser.add_argument("--question", default="分析2025年12月华东销售下降原因")
     parser.add_argument("--run-timeout", type=float, default=360.0)
     parser.add_argument("--max-tool-calls", type=int, default=6)
     parser.add_argument("--keep-open", action="store_true")
@@ -291,9 +275,7 @@ def main() -> int:
             "(() => document.querySelector('#run-card') && !document.querySelector('#run-card').classList.contains('hidden'))()",
             30,
         )
-        browser.wait_js(
-            "(() => !!document.querySelector('#run-status')?.textContent)()", 30
-        )
+        browser.wait_js("(() => !!document.querySelector('#run-status')?.textContent)()", 30)
 
         step("wait for run to finish")
         deadline = time.monotonic() + args.run_timeout
@@ -309,21 +291,15 @@ def main() -> int:
             time.sleep(1.0)
         summary["status_transitions"] = seen
         if not final_status:
-            raise BrowserError(
-                f"run did not finish within {args.run_timeout}s; statuses={seen}"
-            )
+            raise BrowserError(f"run did not finish within {args.run_timeout}s; statuses={seen}")
         summary["checks"]["run_status"] = final_status
         summary["screenshots"].append(browser.screenshot("run-finished"))
         if final_status not in {"completed", "completed_with_warnings", "partial"}:
             raise BrowserError(f"run ended in {final_status!r}: {seen}")
 
         step("verify answer, timeline and tool calls")
-        summary["checks"]["final_answer_chars"] = len(
-            browser.evaluate(text_of("#run-answer")) or ""
-        )
-        summary["checks"]["timeline_steps"] = browser.evaluate(
-            "document.querySelectorAll('#timeline li').length"
-        )
+        summary["checks"]["final_answer_chars"] = len(browser.evaluate(text_of("#run-answer")) or "")
+        summary["checks"]["timeline_steps"] = browser.evaluate("document.querySelectorAll('#timeline li').length")
         summary["checks"]["tool_call_items"] = browser.evaluate(
             "document.querySelectorAll('#tool-calls details.tool-item').length"
         )
@@ -426,12 +402,8 @@ def main() -> int:
 
         step("history and reload")
         browser.evaluate(click("#refresh-history"))
-        browser.wait_js(
-            "(() => document.querySelectorAll('#history-list li').length > 0)()", 20
-        )
-        history_count = browser.evaluate(
-            "document.querySelectorAll('#history-list li').length"
-        )
+        browser.wait_js("(() => document.querySelectorAll('#history-list li').length > 0)()", 20)
+        history_count = browser.evaluate("document.querySelectorAll('#history-list li').length")
         summary["checks"]["history_items"] = history_count
         first_question = browser.evaluate(
             "(document.querySelector('#history-list .history-question')?.textContent || '').trim()"
@@ -445,9 +417,7 @@ def main() -> int:
         browser.evaluate("location.reload()")
         browser.wait_js("!!document.querySelector('#connect')", 30)
         browser.evaluate("connect()", await_promise=True)
-        browser.wait_js(
-            "(() => document.querySelectorAll('#history-list li').length > 0)()", 20
-        )
+        browser.wait_js("(() => document.querySelectorAll('#history-list li').length > 0)()", 20)
         summary["checks"]["history_after_reload"] = browser.evaluate(
             "document.querySelectorAll('#history-list li').length"
         )
@@ -477,9 +447,7 @@ def main() -> int:
         summary["screenshots"].append(browser.screenshot("cancelled-run"))
 
         browser.evaluate(click("#refresh-history"))
-        browser.wait_js(
-            "(() => document.querySelectorAll('#history-list li').length >= 2)()", 20
-        )
+        browser.wait_js("(() => document.querySelectorAll('#history-list li').length >= 2)()", 20)
         summary["checks"]["history_items_after_cancel"] = browser.evaluate(
             "document.querySelectorAll('#history-list li').length"
         )
@@ -506,9 +474,7 @@ def main() -> int:
             browser.close()
 
     summary_path = output_dir / "browser_e2e.json"
-    summary_path.write_text(
-        json.dumps(summary, ensure_ascii=False, indent=2), encoding="utf-8"
-    )
+    summary_path.write_text(json.dumps(summary, ensure_ascii=False, indent=2), encoding="utf-8")
     print(json.dumps(summary, ensure_ascii=False, indent=2))
     return return_code
 

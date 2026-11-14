@@ -3,7 +3,7 @@ from __future__ import annotations
 import hashlib
 import json
 from datetime import datetime, timezone
-from typing import Any, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from ..metric_resolver import MetricResolver
 from .contracts import EvidenceRecord, EvidenceStatus, EvidenceType
@@ -75,13 +75,16 @@ class EvidenceCollector:
         arguments: dict[str, Any],
         result: "ToolResult",
     ) -> list[EvidenceRecord]:
-        return [record for record, _ in self.collect_persisted(
-            run_id=run_id,
-            tool_call_id=tool_call_id,
-            tool=tool,
-            arguments=arguments,
-            result=result,
-        )]
+        return [
+            record
+            for record, _ in self.collect_persisted(
+                run_id=run_id,
+                tool_call_id=tool_call_id,
+                tool=tool,
+                arguments=arguments,
+                result=result,
+            )
+        ]
 
     def collect_persisted(
         self,
@@ -118,9 +121,7 @@ class EvidenceCollector:
                 if item
             }
         )
-        time_start, time_end, baseline_period, baseline_start, baseline_end = _ranges(
-            arguments
-        )
+        time_start, time_end, baseline_period, baseline_start, baseline_end = _ranges(arguments)
         record = EvidenceRecord(
             evidence_id=f"{run_id[:8]}-{tool_call_id}-e1",
             run_id=run_id,
@@ -175,9 +176,7 @@ def _ranges(arguments: dict[str, Any]):
             _str(arguments.get("baseline_end")),
         )
     if arguments.get("period") or arguments.get("kind"):
-        start, end, baseline_start, baseline_end, baseline_period = _comparison_ranges(
-            arguments
-        )
+        start, end, baseline_start, baseline_end, baseline_period = _comparison_ranges(arguments)
         return start, end, baseline_period, baseline_start, baseline_end
     return (
         _str(arguments.get("start")),
@@ -257,10 +256,7 @@ def _grain(arguments: dict[str, Any], result: "ToolResult") -> str | None:
         return "quarter"
     if kind == "yoy_year":
         return "year"
-    if not any(
-        key in arguments
-        for key in ("start", "period", "current_start", "year", "kind")
-    ):
+    if not any(key in arguments for key in ("start", "period", "current_start", "year", "kind")):
         return None
     for point in (result.data or {}).get("points") or []:
         period = str((point or {}).get("period") or "")

@@ -45,9 +45,8 @@ from .contracts import (
     NaturalLanguageResponse,
     Observation,
     ResultType,
-    SQLQueryResult,
 )
-from .planner import CORE_PRODUCTS, HybridPlanner, PlanningResult
+from .planner import CORE_PRODUCTS, HybridPlanner
 from .sql_fallback import SQLFallbackRunner
 
 
@@ -179,7 +178,9 @@ class NaturalLanguageAnalyzer:
         if intent is None:
             error = _error_info(planning.error)
             if request.allow_sql_fallback:
-                return self._run_sql_fallback(request, base, request_id, previous_error=error.message if error else None)
+                return self._run_sql_fallback(
+                    request, base, request_id, previous_error=error.message if error else None
+                )
             base.status = _status_for_planning_error(planning.error)
             base.error = error or ErrorInfo(
                 code="unsupported_question",
@@ -279,7 +280,10 @@ class NaturalLanguageAnalyzer:
                 message=message or "analysis did not produce a complete result",
                 stage="analysis",
             )
-            if result.status in {AnalysisStatus.UNSUPPORTED, AnalysisStatus.INVALID_REQUEST} and request.allow_sql_fallback:
+            if (
+                result.status in {AnalysisStatus.UNSUPPORTED, AnalysisStatus.INVALID_REQUEST}
+                and request.allow_sql_fallback
+            ):
                 return self._run_sql_fallback(
                     request,
                     base,
@@ -307,10 +311,7 @@ class NaturalLanguageAnalyzer:
             base.status = AnalysisStatus.FORBIDDEN
             base.error = ErrorInfo(
                 code="sql_fallback_forbidden",
-                message=(
-                    "this role has data-scope restrictions and cannot use the "
-                    "guarded SQL fallback"
-                ),
+                message=("this role has data-scope restrictions and cannot use the guarded SQL fallback"),
                 stage="authorization",
                 detail={"role": self.principal.role},
             )
@@ -493,12 +494,8 @@ class NaturalLanguageAnalyzer:
         control_regions = [code for code in ("NC", "SC", "WC") if code != region]
 
         east_filter = [DimensionFilter(dimension="region", operator="eq", value=region)]
-        control_filter = [
-            DimensionFilter(dimension="region", operator="in", value=control_regions)
-        ]
-        product_filter = [
-            DimensionFilter(dimension="product", operator="in", value=products)
-        ]
+        control_filter = [DimensionFilter(dimension="region", operator="in", value=control_regions)]
+        product_filter = [DimensionFilter(dimension="product", operator="in", value=products)]
 
         east_sales = self._comparison_observation(
             "east_sales",
@@ -553,8 +550,7 @@ class NaturalLanguageAnalyzer:
 
         central_complete = (
             east_sales.status == AnalysisStatus.OK
-            and east_stockout.status
-            in {AnalysisStatus.OK, AnalysisStatus.NOT_CALCULABLE}
+            and east_stockout.status in {AnalysisStatus.OK, AnalysisStatus.NOT_CALCULABLE}
             and east_stockout.value is not None
             and east_stockout.baseline_value is not None
         )
@@ -689,15 +685,13 @@ class NaturalLanguageAnalyzer:
             point_change = (stockout_rate_value - stockout_baseline) * 100
         if stockout_change is None:
             movement = (
-                f"由 {pct(stockout_baseline)} 变为 {pct(stockout_rate_value)}"
-                f"（{point_change:+.2f} 个百分点）"
+                f"由 {pct(stockout_baseline)} 变为 {pct(stockout_rate_value)}（{point_change:+.2f} 个百分点）"
                 if point_change is not None
                 else f"为 {pct(stockout_rate_value)}"
             )
         else:
             movement = (
-                f"为 {pct(stockout_rate_value)}（基期 {pct(stockout_baseline)}，"
-                f"相对变化 {pct(stockout_change)}）"
+                f"为 {pct(stockout_rate_value)}（基期 {pct(stockout_baseline)}，相对变化 {pct(stockout_change)}）"
             )
         prefix = f"华东销售额环比下降 {pct(abs(sales_rate))}；同期核心商品缺货率{movement}。"
         if east_inventory.status == AnalysisStatus.OK and east_inventory.change_rate is not None:
@@ -706,14 +700,11 @@ class NaturalLanguageAnalyzer:
                 f"{east_inventory.value}（变化 {pct(east_inventory.change_rate)}）。"
             )
         if (
-            control_stockout.status
-            in {AnalysisStatus.OK, AnalysisStatus.NOT_CALCULABLE}
+            control_stockout.status in {AnalysisStatus.OK, AnalysisStatus.NOT_CALCULABLE}
             and control_stockout.value is not None
             and control_stockout.baseline_value is not None
         ):
-            control_points = (
-                control_stockout.value - control_stockout.baseline_value
-            ) * 100
+            control_points = (control_stockout.value - control_stockout.baseline_value) * 100
             prefix += (
                 "作为参照，其他区域核心商品缺货率由 "
                 f"{pct(control_stockout.baseline_value)} 变为 "

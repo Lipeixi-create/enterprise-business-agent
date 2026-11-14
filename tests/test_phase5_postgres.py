@@ -36,9 +36,8 @@ def engine():
 
 
 def _record(run_id: str) -> EvidenceRecord:
-    from datetime import datetime, timezone
-
     import hashlib
+    from datetime import datetime, timezone
 
     return EvidenceRecord(
         evidence_id=f"{run_id}-e1",
@@ -138,9 +137,7 @@ def test_postgres_findings_and_report_persist(engine):
 def test_postgres_run_store_roundtrip(engine):
     from enterprise_business_agent.api.run_store import PersistentRunStore
 
-    store = PersistentRunStore(
-        engine.url.render_as_string(hide_password=False)
-    )
+    store = PersistentRunStore(engine.url.render_as_string(hide_password=False))
     try:
         run_id = "pg-run-store-1"
         store.create(
@@ -167,4 +164,3 @@ def test_postgres_run_store_roundtrip(engine):
         assert store.get_status(run_id) == "completed"
     finally:
         store.close()
-

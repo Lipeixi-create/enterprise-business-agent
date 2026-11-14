@@ -33,10 +33,7 @@ from enterprise_business_agent.llm import LLMTimeout
 from enterprise_business_agent.security import AuthorizationPolicy, Principal
 from tests.agent_fakes import ScriptedLLM, finish_response, tool_response
 
-
-ANALYST = Principal(
-    "key:owner", "analyst", frozenset({"metrics:read", "agent:run"})
-)
+ANALYST = Principal("key:owner", "analyst", frozenset({"metrics:read", "agent:run"}))
 RESTRICTED = Principal(
     "key:restricted",
     "restricted_analyst",
@@ -88,9 +85,7 @@ def env(tmp_path):
         agent_tool_timeout_seconds=2,
         agent_tool_max_retries=0,
         agent_max_consecutive_failures=2,
-        authz_policy={
-            "restricted_analyst": {"tools": ["compare_periods", "query_metric"]}
-        },
+        authz_policy={"restricted_analyst": {"tools": ["compare_periods", "query_metric"]}},
     )
     data_path = tmp_path / "data.db"
     write_engine = make_engine(f"sqlite:///{data_path}")
@@ -99,9 +94,7 @@ def env(tmp_path):
         generate_data(seed, date(2024, 1, 1), 24, reset=False)
         seed.commit()
     write_engine.dispose()
-    read_engine = make_readonly_engine(
-        f"sqlite:///{data_path}", settings.query_timeout_ms
-    )
+    read_engine = make_readonly_engine(f"sqlite:///{data_path}", settings.query_timeout_ms)
     factory = sessionmaker(bind=read_engine, class_=Session, expire_on_commit=False)
     run_url = f"sqlite:///{tmp_path / 'runtime.db'}"
     yield SimpleNamespace(
@@ -248,9 +241,7 @@ def test_cached_tool_result_is_not_replayed_for_a_less_privileged_role(env):
         first_store,
         _registry(env, crash=True),
     )
-    assert crashed.run(
-        "分析 2025-03-01 各区域销售额", ANALYST, run_id=run_id
-    ).status is AgentStatus.FAILED
+    assert crashed.run("分析 2025-03-01 各区域销售额", ANALYST, run_id=run_id).status is AgentStatus.FAILED
 
     call = TOP_N_CALL.tool_calls[0]
     call_key = _call_key(TOP_N_CALL)
@@ -289,9 +280,7 @@ def test_cached_tool_result_is_not_replayed_for_a_less_privileged_role(env):
 def test_resume_without_checkpoint_is_a_structured_failure(env):
     store = _open_run_store(env.run_url)
     try:
-        runtime = _runtime(
-            env, ScriptedLLM([finish_response("不会执行")]), store, _registry(env)
-        )
+        runtime = _runtime(env, ScriptedLLM([finish_response("不会执行")]), store, _registry(env))
         response = runtime.resume("missing-run", ANALYST)
         assert response.status is AgentStatus.FAILED
         assert response.stop_reason == "checkpoint_not_found"
@@ -453,25 +442,15 @@ def test_resume_policy_rejects_completed_and_permission_stops():
         "",
     )
     assert _is_resumable({"status": "interrupted"}) == (True, "")
-    assert _is_resumable(
-        {"status": "completed", "stop_reason": None}
-    )[0] is False
-    assert _is_resumable(
-        {"status": "failed", "stop_reason": "permission_denied"}
-    )[0] is False
-    assert _is_resumable(
-        {"status": "budget_exhausted", "stop_reason": "tool_budget_exhausted"}
-    )[0] is False
-    assert _is_resumable(
-        {"status": "cancelled", "stop_reason": "cancelled_by_user"}
-    )[0] is False
+    assert _is_resumable({"status": "completed", "stop_reason": None})[0] is False
+    assert _is_resumable({"status": "failed", "stop_reason": "permission_denied"})[0] is False
+    assert _is_resumable({"status": "budget_exhausted", "stop_reason": "tool_budget_exhausted"})[0] is False
+    assert _is_resumable({"status": "cancelled", "stop_reason": "cancelled_by_user"})[0] is False
 
 
 def test_unavailable_postgres_never_falls_back_to_sqlite(tmp_path):
     with pytest.raises(Exception) as caught:
-        PersistentRunStore(
-            "postgresql+psycopg://eba_runtime:not-a-real-password@127.0.0.1:1/ebo"
-        )
+        PersistentRunStore("postgresql+psycopg://eba_runtime:not-a-real-password@127.0.0.1:1/ebo")
     # An unreachable PostgreSQL must surface the connection error. Creating a
     # local SQLite database here would hide a production misconfiguration.
     assert "sqlite" not in str(caught.value).lower()
@@ -545,14 +524,10 @@ def test_claim_is_exclusive_across_store_instances(env):
     second = PersistentRunStore(url)
     try:
         _failed_run(first, "claim-exclusive")
-        won = first.acquire_claim(
-            "claim-exclusive", "worker-a", 60, allowed_statuses={"failed"}
-        )
+        won = first.acquire_claim("claim-exclusive", "worker-a", 60, allowed_statuses={"failed"})
         assert won.claim is not None
         assert won.claim.claim_version == 1
-        lost = second.acquire_claim(
-            "claim-exclusive", "worker-b", 60, allowed_statuses={"failed"}
-        )
+        lost = second.acquire_claim("claim-exclusive", "worker-b", 60, allowed_statuses={"failed"})
         assert lost.claim is None
         assert lost.reason == "lease_held"
         assert lost.held_by == "worker-a"
@@ -571,14 +546,10 @@ def test_expired_lease_allows_takeover_and_blocks_stale_writes(env):
     second = PersistentRunStore(url)
     try:
         _failed_run(first, "claim-takeover")
-        stale = first.acquire_claim(
-            "claim-takeover", "worker-stale", 0.2, allowed_statuses={"failed"}
-        ).claim
+        stale = first.acquire_claim("claim-takeover", "worker-stale", 0.2, allowed_statuses={"failed"}).claim
         assert stale is not None
         time.sleep(0.3)
-        fresh = second.acquire_claim(
-            "claim-takeover", "worker-fresh", 60, allowed_statuses={"failed"}
-        ).claim
+        fresh = second.acquire_claim("claim-takeover", "worker-fresh", 60, allowed_statuses={"failed"}).claim
         assert fresh is not None
         assert fresh.claim_version == stale.claim_version + 1
 
@@ -610,20 +581,14 @@ def test_crashed_worker_lease_expires_and_manager_takes_over(env):
     store = PersistentRunStore(url)
     try:
         _failed_run(store, "claim-crash")
-        crashed = store.acquire_claim(
-            "claim-crash", "worker-crashed", 0.2, allowed_statuses={"failed"}
-        ).claim
+        crashed = store.acquire_claim("claim-crash", "worker-crashed", 0.2, allowed_statuses={"failed"}).claim
         assert crashed is not None
         time.sleep(0.3)
-        settings = env.settings.model_copy(
-            update={"run_lease_seconds": 5, "agent_run_max_lifecycle_seconds": 60}
-        )
+        settings = env.settings.model_copy(update={"run_lease_seconds": 5, "agent_run_max_lifecycle_seconds": 60})
         runtime = _FakeRuntime()
         manager = _manager(store, settings, runtime)
         try:
-            result = manager.resume(
-                "claim-crash", ANALYST, owner=ANALYST.principal_id
-            )
+            result = manager.resume("claim-crash", ANALYST, owner=ANALYST.principal_id)
         finally:
             manager.shutdown()
         assert result["status"] == "completed"
@@ -647,9 +612,7 @@ def test_lifecycle_budget_accumulates_across_resumes(env):
                 "run_lease_seconds": 30,
             }
         )
-        claim = store.acquire_claim(
-            "lifecycle-run", "worker-a", 30, allowed_statuses={"failed"}
-        ).claim
+        claim = store.acquire_claim("lifecycle-run", "worker-a", 30, allowed_statuses={"failed"}).claim
         assert claim is not None
         store.record_execution(claim, 3.0, resumed=True)
         store.release_claim(claim)
@@ -657,9 +620,7 @@ def test_lifecycle_budget_accumulates_across_resumes(env):
         assert state["execution_seconds"] == pytest.approx(3.0)
         assert state["resume_count"] == 1
 
-        second = store.acquire_claim(
-            "lifecycle-run", "worker-a", 30, allowed_statuses={"failed"}
-        ).claim
+        second = store.acquire_claim("lifecycle-run", "worker-a", 30, allowed_statuses={"failed"}).claim
         assert second is not None
         store.record_execution(second, 2.5, resumed=True)
         store.release_claim(second)
@@ -694,9 +655,7 @@ def test_api_run_completion_releases_the_database_lease(api_env):
         run_store=api_env.run_store,
     )
     with TestClient(app) as client:
-        created = client.post(
-            "/api/v1/agent/runs", headers=auth, json={"question": "分析销售额"}
-        )
+        created = client.post("/api/v1/agent/runs", headers=auth, json={"question": "分析销售额"})
         assert created.status_code == 200, created.text
         run_id = created.json()["run_id"]
         for _ in range(100):
@@ -714,7 +673,6 @@ def test_api_run_completion_releases_the_database_lease(api_env):
         assert state is not None
         assert state["claim_owner"] is None
         assert state["lease_expires_at"] is None
-
 
 
 @pytest.fixture()
@@ -738,9 +696,7 @@ def api_env(tmp_path):
         generate_data(seed, date(2024, 1, 1), 24, reset=False)
         seed.commit()
     write_engine.dispose()
-    engine = make_readonly_engine(
-        f"sqlite:///{data_path}", settings.query_timeout_ms
-    )
+    engine = make_readonly_engine(f"sqlite:///{data_path}", settings.query_timeout_ms)
     factory = sessionmaker(bind=engine, class_=Session, expire_on_commit=False)
     run_store = PersistentRunStore(f"sqlite:///{tmp_path / 'api-runs.db'}")
     yield SimpleNamespace(
@@ -759,9 +715,7 @@ def test_api_resume_continues_a_crashed_run(api_env):
     from enterprise_business_agent.api import ResultStore, create_app
 
     auth = {"X-API-Key": "agent-key"}
-    llm = ScriptedLLM(
-        [TOP_N_CALL, RuntimeError("simulated process crash"), finish_response("恢复完成。")]
-    )
+    llm = ScriptedLLM([TOP_N_CALL, RuntimeError("simulated process crash"), finish_response("恢复完成。")])
     app = create_app(
         api_env.settings,
         session_factory=api_env.factory,
@@ -782,18 +736,14 @@ def test_api_resume_continues_a_crashed_run(api_env):
         run_id = run["run_id"]
         assert api_env.run_store.count_tool_results(run_id) == 1
 
-        resumed = client.post(
-            f"/api/v1/agent/runs/{run_id}/resume", headers=auth
-        )
+        resumed = client.post(f"/api/v1/agent/runs/{run_id}/resume", headers=auth)
         assert resumed.status_code == 200, resumed.text
         body = resumed.json()
         assert body["status"] in {"completed", "completed_with_warnings"}
         assert body["run_id"] == run_id
         assert api_env.run_store.count_tool_results(run_id) == 1
 
-        repeated = client.post(
-            f"/api/v1/agent/runs/{run_id}/resume", headers=auth
-        )
+        repeated = client.post(f"/api/v1/agent/runs/{run_id}/resume", headers=auth)
         assert repeated.status_code == 409
         assert repeated.json()["error"]["code"] == "run_not_resumable"
 

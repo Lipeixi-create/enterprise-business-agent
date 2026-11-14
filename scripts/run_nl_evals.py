@@ -62,7 +62,9 @@ def main() -> int:
             failures = [f"{type(exc).__name__}: {exc}"]
         if failures:
             failed += 1
-            print(f"FAIL {case['id']} [{case['category']}] {case['question'] if 'question' in case else case.get('sql', '')}")
+            print(
+                f"FAIL {case['id']} [{case['category']}] {case['question'] if 'question' in case else case.get('sql', '')}"
+            )
             for failure in failures:
                 print(f"     {failure}")
         else:

@@ -9,9 +9,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 def _load_preflight():
-    spec = importlib.util.spec_from_file_location(
-        "eba_preflight", ROOT / "scripts" / "preflight.py"
-    )
+    spec = importlib.util.spec_from_file_location("eba_preflight", ROOT / "scripts" / "preflight.py")
     module = importlib.util.module_from_spec(spec)
     assert spec.loader is not None
     sys.modules["eba_preflight"] = module
@@ -24,8 +22,7 @@ preflight = _load_preflight()
 
 def test_redact_url_removes_password_and_query():
     redacted = preflight.redact_url(
-        "postgresql+psycopg://eba_readonly:sup3r-secret@db.internal:5432/eba"
-        "?sslmode=verify-full"
+        "postgresql+psycopg://eba_readonly:sup3r-secret@db.internal:5432/eba?sslmode=verify-full"
     )
     assert "sup3r-secret" not in redacted
     assert "sslmode" not in redacted

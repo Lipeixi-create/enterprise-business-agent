@@ -3,11 +3,10 @@ from __future__ import annotations
 from datetime import date
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field, ValidationInfo, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from ..analysis.contracts import DimensionFilter, TimeGrain
 from ..analysis.time_ranges import parse_period_end_value, parse_period_value
-
 
 Operation = Literal["query", "compare", "top_n", "contribution", "trend", "anomaly", "investigation"]
 ComparisonKind = Literal["mom", "yoy", "qoq", "yoy_quarter", "yoy_year"]

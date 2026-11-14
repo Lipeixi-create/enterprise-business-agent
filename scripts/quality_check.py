@@ -4,10 +4,11 @@ import argparse
 import json
 import sys
 
+from sqlalchemy.orm import Session
+
 from enterprise_business_agent.config import get_settings
 from enterprise_business_agent.db import make_engine
 from enterprise_business_agent.quality import run_quality_checks
-from sqlalchemy.orm import Session
 
 
 def main() -> None:

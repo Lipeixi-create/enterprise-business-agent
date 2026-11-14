@@ -1,3 +1,4 @@
+from .audit import SECURITY_EVENT_TYPES, record_security_event
 from .auth import (
     AuthenticationError,
     AuthorizationError,
@@ -5,7 +6,6 @@ from .auth import (
     Principal,
     authenticate,
 )
-from .audit import SECURITY_EVENT_TYPES, record_security_event
 from .errors import ExecutionFailure, GuardRejection, QueryError, QueryErrorCode
 from .executor import QueryExecutionResult, SafeQueryExecutor, SecureQueryService
 from .semantic_guard import SemanticQueryGuard, TrustedSelect

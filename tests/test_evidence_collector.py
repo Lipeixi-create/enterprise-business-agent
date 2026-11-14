@@ -85,9 +85,7 @@ def test_result_payload_is_stored_verbatim(collector):
         "metric": "sales_amount",
         "label": "销售额",
         "unit": "CNY",
-        "points": [
-            {"period": "2025-12-01", "value": "1200.00", "dimensions": {"region": "EC"}}
-        ],
+        "points": [{"period": "2025-12-01", "value": "1200.00", "dimensions": {"region": "EC"}}],
         "explain": {"source_table": "sales_fact", "sql": "SELECT 1", "params": {}},
     }
     before = copy.deepcopy(payload)

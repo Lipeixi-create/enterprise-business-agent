@@ -127,9 +127,7 @@ class RequestContextMiddleware(BaseHTTPMiddleware):
                     if response.status_code >= 500:
                         from opentelemetry.trace import Status, StatusCode
 
-                        current.set_status(
-                            Status(StatusCode.ERROR, f"http_{response.status_code}")
-                        )
+                        current.set_status(Status(StatusCode.ERROR, f"http_{response.status_code}"))
                 except Exception:
                     pass
             response.headers[REQUEST_ID_HEADER] = request_id
@@ -153,9 +151,7 @@ class RequestContextMiddleware(BaseHTTPMiddleware):
                 )
             if response.status_code in {401, 403}:
                 principal = getattr(request.state, "principal", None)
-                event_type = (
-                    "auth_failed" if response.status_code == 401 else "authorization_denied"
-                )
+                event_type = "auth_failed" if response.status_code == 401 else "authorization_denied"
                 record_security_event(
                     getattr(request.app.state, "run_store", None),
                     event_type,

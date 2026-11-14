@@ -130,10 +130,7 @@ class LLMToolResponse:
 class LLMClient(Protocol):
     model: str
 
-    def complete_json(
-        self, *, system: str, prompt: str, max_tokens: int | None = None
-    ) -> LLMCallResult:
-        ...
+    def complete_json(self, *, system: str, prompt: str, max_tokens: int | None = None) -> LLMCallResult: ...
 
     def complete_with_tools(
         self,
@@ -143,8 +140,7 @@ class LLMClient(Protocol):
         tools: list[dict[str, Any]],
         timeout_seconds: float | None = None,
         max_tokens: int | None = None,
-    ) -> LLMToolResponse:
-        ...
+    ) -> LLMToolResponse: ...
 
 
 _JSON_FENCE = re.compile(r"```(?:json)?\s*(.*?)```", re.IGNORECASE | re.DOTALL)
@@ -230,9 +226,7 @@ def _mark_budget_limited(exc: Exception, attempts: int) -> Exception:
 def _deadline_for(timeout_seconds: float | None) -> float | None:
     """Combine an explicit request window with the owning run's hard deadline."""
 
-    request_deadline = (
-        time.monotonic() + timeout_seconds if timeout_seconds is not None else None
-    )
+    request_deadline = time.monotonic() + timeout_seconds if timeout_seconds is not None else None
     run_deadline = active_deadline()
     if request_deadline is None:
         return run_deadline
@@ -307,9 +301,7 @@ def _content_blocks(content: Any) -> list[dict[str, Any]]:
     return [{"type": "text", "text": str(content or "")}]
 
 
-def _append_message(
-    converted: list[dict[str, Any]], role: str, content: Any
-) -> None:
+def _append_message(converted: list[dict[str, Any]], role: str, content: Any) -> None:
     # Anthropic-compatible providers may reject adjacent same-role messages.
     # Merge them while preserving block order (e.g. tool_result then prompt).
     if converted and converted[-1]["role"] == role:
@@ -413,9 +405,7 @@ class AnthropicClient:
         except CircuitOpenError as exc:
             raise LLMCircuitOpen(str(exc)) from exc
 
-    def complete_json(
-        self, *, system: str, prompt: str, max_tokens: int | None = None
-    ) -> LLMCallResult:
+    def complete_json(self, *, system: str, prompt: str, max_tokens: int | None = None) -> LLMCallResult:
         payload = {
             "model": self.model,
             "max_tokens": max_tokens or self._max_tokens,
@@ -450,9 +440,7 @@ class AnthropicClient:
                 )
             attempts += 1
             try:
-                response = self._post(
-                    self._base_url, headers, payload, request_timeout
-                )
+                response = self._post(self._base_url, headers, payload, request_timeout)
                 if response.status_code == 200:
                     self._breaker.record_success()
                     body = response.json()
@@ -469,8 +457,7 @@ class AnthropicClient:
                     except LLMInvalidResponse as exc:
                         if truncated:
                             raise LLMTruncated(
-                                "model response reached the output token cap before "
-                                "the JSON object was complete"
+                                "model response reached the output token cap before the JSON object was complete"
                             ) from exc
                         raise
                     usage = body.get("usage") or {}
@@ -500,9 +487,7 @@ class AnthropicClient:
                         attempts,
                     )
                     self._breaker.record_failure()
-                    retry_after = retry_after_seconds(
-                        response.headers, maximum=self._retry_after_max
-                    )
+                    retry_after = retry_after_seconds(response.headers, maximum=self._retry_after_max)
                 else:
                     raise LLMInvalidResponse(
                         f"LLM provider returned HTTP {response.status_code}",
@@ -511,17 +496,15 @@ class AnthropicClient:
                     )
             except TransportCancelled as exc:
                 raise LLMCancelled("LLM request was cancelled") from exc
-            except httpx.TimeoutException as exc:
+            except httpx.TimeoutException:
                 last_error = _mark_error(
                     LLMTimeout("LLM request timed out", kind=FAULT_TIMEOUT),
                     attempts,
                 )
                 self._breaker.record_failure()
-            except httpx.HTTPError as exc:
+            except httpx.HTTPError:
                 last_error = _mark_error(
-                    LLMUnavailable(
-                        "LLM provider is unreachable", kind=FAULT_CONNECTION
-                    ),
+                    LLMUnavailable("LLM provider is unreachable", kind=FAULT_CONNECTION),
                     attempts,
                 )
                 self._breaker.record_failure()
@@ -593,9 +576,7 @@ class AnthropicClient:
                 )
             attempts += 1
             try:
-                response = self._post(
-                    self._base_url, headers, payload, request_timeout
-                )
+                response = self._post(self._base_url, headers, payload, request_timeout)
                 if response.status_code == 200:
                     self._breaker.record_success()
                     body = response.json()
@@ -649,9 +630,7 @@ class AnthropicClient:
                         attempts,
                     )
                     self._breaker.record_failure()
-                    retry_after = retry_after_seconds(
-                        response.headers, maximum=self._retry_after_max
-                    )
+                    retry_after = retry_after_seconds(response.headers, maximum=self._retry_after_max)
                 else:
                     raise LLMInvalidResponse(
                         f"LLM provider returned HTTP {response.status_code}",
@@ -660,17 +639,15 @@ class AnthropicClient:
                     )
             except TransportCancelled as exc:
                 raise LLMCancelled("LLM request was cancelled") from exc
-            except httpx.TimeoutException as exc:
+            except httpx.TimeoutException:
                 last_error = _mark_error(
                     LLMTimeout("LLM request timed out", kind=FAULT_TIMEOUT),
                     attempts,
                 )
                 self._breaker.record_failure()
-            except httpx.HTTPError as exc:
+            except httpx.HTTPError:
                 last_error = _mark_error(
-                    LLMUnavailable(
-                        "LLM provider is unreachable", kind=FAULT_CONNECTION
-                    ),
+                    LLMUnavailable("LLM provider is unreachable", kind=FAULT_CONNECTION),
                     attempts,
                 )
                 self._breaker.record_failure()
@@ -707,7 +684,4 @@ def build_llm_client(settings: Settings) -> LLMClient | None:
         from .glm import GLMClient
 
         return GLMClient(settings)
-    raise LLMUnavailable(
-        f"LLM provider {settings.llm_provider!r} is not supported; "
-        "use 'anthropic' or 'glm'"
-    )
+    raise LLMUnavailable(f"LLM provider {settings.llm_provider!r} is not supported; use 'anthropic' or 'glm'")

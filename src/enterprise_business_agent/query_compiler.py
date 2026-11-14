@@ -50,10 +50,7 @@ class CompiledQuery:
             denominator=self.metric.denominator,
             aggregation=aggregation or self.metric.aggregation,
             dimensions=list(self.dimensions),
-            filters=[
-                f"{item.dimension} {item.operator} {item.value!r}"
-                for item in self.filters
-            ],
+            filters=[f"{item.dimension} {item.operator} {item.value!r}" for item in self.filters],
             time_grain=time_grain,
             dialect=self.dialect_name,
             sql=self.sql,
@@ -225,16 +222,10 @@ class QueryCompiler:
                 else:
                     clauses.append(and_(code_column != bound, name_column != bound))
             else:
-                raise QueryCompileError(
-                    f"operator {item.operator!r} is only supported for the period dimension"
-                )
+                raise QueryCompileError(f"operator {item.operator!r} is only supported for the period dimension")
 
         statement = (
-            select(*columns)
-            .select_from(from_clause)
-            .where(*clauses)
-            .group_by(*group_columns)
-            .order_by(*group_columns)
+            select(*columns).select_from(from_clause).where(*clauses).group_by(*group_columns).order_by(*group_columns)
         )
         sql = str(
             statement.compile(

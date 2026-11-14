@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from pydantic import BaseModel, Field
 from sqlalchemy.engine import Engine
@@ -144,16 +144,12 @@ class Phase5Pipeline:
             ):
                 pass
         with span("approval.ensure", approval__run_id=run_id) as current:
-            approval = self.approval_store.ensure_for_report(
-                report, requested_by=principal_id
-            )
+            approval = self.approval_store.ensure_for_report(report, requested_by=principal_id)
             if current is not None:
                 try:
                     current.set_attribute("approval.id", approval.approval_id)
                     current.set_attribute("approval.state", approval.state)
-                    current.set_attribute(
-                        "approval.required", bool(approval.requires_approval)
-                    )
+                    current.set_attribute("approval.required", bool(approval.requires_approval))
                 except Exception:
                     pass
         return Phase5Result(

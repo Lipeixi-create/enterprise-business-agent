@@ -14,7 +14,6 @@ from enterprise_business_agent.evaluation import check_analyze, check_guard, che
 from enterprise_business_agent.nl import NaturalLanguageAnalyzer, RuleBasedPlanner
 from enterprise_business_agent.security import SQLGuard
 
-
 CASES = load_cases(Path(__file__).parent / "evals" / "nl_cases.jsonl")
 
 

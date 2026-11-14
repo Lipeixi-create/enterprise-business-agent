@@ -50,9 +50,7 @@ FIRST_ROUND_IDS: tuple[str, ...] = (
     "phase7-063",  # predictive question, must refuse
 )
 
-FIRST_ROUND_DOMAINS = frozenset(
-    {"Sales", "Marketing", "Finance", "Supply Chain", "HR", "Cross-domain", "Safety"}
-)
+FIRST_ROUND_DOMAINS = frozenset({"Sales", "Marketing", "Finance", "Supply Chain", "HR", "Cross-domain", "Safety"})
 FIRST_ROUND_CATEGORIES = frozenset(
     {
         "metric_query",
@@ -151,10 +149,7 @@ def config_snapshot(
     key existed, never its value or a prefix of it.
     """
 
-    prices = (
-        settings.model_input_price_per_million is not None
-        and settings.model_output_price_per_million is not None
-    )
+    prices = settings.model_input_price_per_million is not None and settings.model_output_price_per_million is not None
     return {
         "provider": settings.llm_provider,
         "model": settings.llm_model,
@@ -204,11 +199,7 @@ def live_preflight(
         LiveCheck(
             "authorization.live_model",
             PASS if allow_live_model else FAIL,
-            (
-                "已显式授权真实模型调用"
-                if allow_live_model
-                else "缺少 --allow-live-model；不会发送任何请求"
-            ),
+            ("已显式授权真实模型调用" if allow_live_model else "缺少 --allow-live-model；不会发送任何请求"),
             operator_gate=not allow_live_model,
         )
     )
@@ -218,10 +209,7 @@ def live_preflight(
         budget_message = "缺少 --max-model-calls，调用预算未确认"
     elif max_model_calls < len(cases) * MIN_MODEL_CALLS_PER_CASE:
         budget_status = FAIL
-        budget_message = (
-            f"调用上限 {max_model_calls} 小于用例数 {len(cases)}"
-            "（每条至少需要一次规划调用）"
-        )
+        budget_message = f"调用上限 {max_model_calls} 小于用例数 {len(cases)}（每条至少需要一次规划调用）"
     elif max_model_calls > HARD_MAX_MODEL_CALLS:
         budget_status = FAIL
         budget_message = f"调用上限 {max_model_calls} 超过硬上限 {HARD_MAX_MODEL_CALLS}"
@@ -252,11 +240,7 @@ def live_preflight(
 
     if preset == "first-round-20":
         coverage = first_round_coverage(cases)
-        missing = (
-            coverage["missing_ids"]
-            + coverage["missing_domains"]
-            + coverage["missing_categories"]
-        )
+        missing = coverage["missing_ids"] + coverage["missing_domains"] + coverage["missing_categories"]
         add(
             LiveCheck(
                 "corpus.first_round_coverage",
@@ -279,9 +263,7 @@ def live_preflight(
         LiveCheck(
             "provider.endpoint",
             FAIL if issues else PASS,
-            "base_url 与 model 名称和协议匹配"
-            if not issues
-            else "；".join(issues),
+            "base_url 与 model 名称和协议匹配" if not issues else "；".join(issues),
         )
     )
     add(
@@ -349,34 +331,26 @@ def live_preflight(
         LiveCheck(
             "runtime.timeout",
             timeout_status,
-            f"LLM 超时 {settings.llm_timeout_seconds}s；"
-            f"单次 Run 上限 {settings.agent_max_seconds}s",
+            f"LLM 超时 {settings.llm_timeout_seconds}s；单次 Run 上限 {settings.agent_max_seconds}s",
         )
     )
-    stop_ok = (
-        settings.agent_max_consecutive_failures >= 1
-        and settings.agent_max_tool_calls >= 1
-    )
+    stop_ok = settings.agent_max_consecutive_failures >= 1 and settings.agent_max_tool_calls >= 1
     add(
         LiveCheck(
             "runtime.stop_policy",
             PASS if stop_ok else FAIL,
-            f"连续失败上限 {settings.agent_max_consecutive_failures}；"
-            f"工具调用上限 {settings.agent_max_tool_calls}",
+            f"连续失败上限 {settings.agent_max_consecutive_failures}；工具调用上限 {settings.agent_max_tool_calls}",
         )
     )
 
     prices_configured = (
-        settings.model_input_price_per_million is not None
-        and settings.model_output_price_per_million is not None
+        settings.model_input_price_per_million is not None and settings.model_output_price_per_million is not None
     )
     add(
         LiveCheck(
             "cost.prices",
             PASS if prices_configured else WARN,
-            "模型单价已配置，可估算成本"
-            if prices_configured
-            else "未配置模型单价；成本字段将记录为 null，不做估算",
+            "模型单价已配置，可估算成本" if prices_configured else "未配置模型单价；成本字段将记录为 null，不做估算",
         )
     )
 

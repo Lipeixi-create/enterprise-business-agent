@@ -5,9 +5,8 @@ Revises:
 """
 
 from alembic import op
-
-from enterprise_business_agent.db import Base
 from enterprise_business_agent import models  # noqa: F401
+from enterprise_business_agent.db import Base
 
 revision = "0001_phase1_schema"
 down_revision = None

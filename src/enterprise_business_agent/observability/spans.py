@@ -31,11 +31,7 @@ def _coerce(value: Any) -> Any:
 
 
 def _attributes(values: Mapping[str, Any]) -> dict[str, Any]:
-    return {
-        key: _coerce(value)
-        for key, value in values.items()
-        if value is not None
-    }
+    return {key: _coerce(value) for key, value in values.items() if value is not None}
 
 
 class SpanSink:
@@ -57,9 +53,7 @@ class SpanSink:
         trace_module: Any = None,
         parent_context: Any = None,
     ):
-        self._trace_module: Any = (
-            trace_module if trace_module is not None else _load_trace_module()
-        )
+        self._trace_module: Any = trace_module if trace_module is not None else _load_trace_module()
         if tracer is None:
             from .setup import current_tracer
 
@@ -82,8 +76,7 @@ class SpanSink:
             self._root = self._start(
                 "agent.run",
                 None,
-                {"agent.run_id": run_id, "agent.provider": provider,
-                 "agent.prompt_version": prompt_version},
+                {"agent.run_id": run_id, "agent.provider": provider, "agent.prompt_version": prompt_version},
                 context=parent_context,
             )
             # Keep the run span current so SQL, evidence and report spans
@@ -171,13 +164,9 @@ class SpanSink:
                     duration = _coerce(event.get("duration_ms"))
                     if duration is not None:
                         span.set_attribute("tool.duration_ms", duration)
-                    span.set_attribute(
-                        "tool.evidence_count", len(event.get("evidence_ids") or [])
-                    )
+                    span.set_attribute("tool.evidence_count", len(event.get("evidence_ids") or []))
                     if event.get("error_code") is not None:
-                        span.set_attribute(
-                            "tool.error_code", str(event.get("error_code"))
-                        )
+                        span.set_attribute("tool.error_code", str(event.get("error_code")))
                 finally:
                     if status and status != "ok":
                         self._mark_error(span, status)
@@ -275,9 +264,7 @@ class SpanSink:
         try:
             from opentelemetry import context as otel_context
 
-            return otel_context.attach(
-                self._trace_module.set_span_in_context(span)
-            )
+            return otel_context.attach(self._trace_module.set_span_in_context(span))
         except Exception:
             return None
 
@@ -321,9 +308,7 @@ class SpanSink:
         if parent is not None and self._trace_module is not None:
             context = self._trace_module.set_span_in_context(parent)
         if context is not None:
-            return self._tracer.start_span(
-                name, context=context, attributes=_attributes(attributes)
-            )
+            return self._tracer.start_span(name, context=context, attributes=_attributes(attributes))
         return self._tracer.start_span(name, attributes=_attributes(attributes))
 
     @staticmethod

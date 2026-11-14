@@ -67,9 +67,7 @@ class RunResumeError(Exception):
         super().__init__(message)
 
 
-RESUMABLE_STATUSES = frozenset(
-    {"interrupted", "failed", "llm_unavailable", "llm_timeout", "tool_failure"}
-)
+RESUMABLE_STATUSES = frozenset({"interrupted", "failed", "llm_unavailable", "llm_timeout", "tool_failure"})
 
 
 class _LeaseHeartbeat:
@@ -172,12 +170,8 @@ class RunManager:
         self.store = store
         self.settings = settings
         self.logger = logger
-        self.worker_id = worker_id or (
-            f"{socket.gethostname()}:{os.getpid()}:{uuid.uuid4().hex[:8]}"
-        )
-        self._executor = ThreadPoolExecutor(
-            max_workers=max(1, max_workers), thread_name_prefix="eba-agent-run"
-        )
+        self.worker_id = worker_id or (f"{socket.gethostname()}:{os.getpid()}:{uuid.uuid4().hex[:8]}")
+        self._executor = ThreadPoolExecutor(max_workers=max(1, max_workers), thread_name_prefix="eba-agent-run")
         self._cancel_events: dict[str, threading.Event] = {}
         self._lock = threading.Lock()
 
@@ -193,9 +187,7 @@ class RunManager:
         trace_context: Any = None,
     ) -> tuple[dict[str, Any], bool]:
         if idempotency_key is not None:
-            existing = self.store.find_by_idempotency(
-                principal.principal_id, idempotency_key
-            )
+            existing = self.store.find_by_idempotency(principal.principal_id, idempotency_key)
             if existing is not None:
                 return existing, False
         run_id = str(uuid.uuid4())
@@ -239,9 +231,7 @@ class RunManager:
         )
         return payload, True
 
-    def cancel(
-        self, run_id: str, principal: Principal, *, owner: str | None = None
-    ) -> tuple[bool, str]:
+    def cancel(self, run_id: str, principal: Principal, *, owner: str | None = None) -> tuple[bool, str]:
         with self._lock:
             event = self._cancel_events.get(run_id)
         document = self.store.get(run_id, owner=owner)
@@ -263,9 +253,7 @@ class RunManager:
         )
         return True, "cancelling"
 
-    def events(
-        self, run_id: str, principal: Principal, *, owner: str | None = None
-    ) -> list[dict[str, Any]]:
+    def events(self, run_id: str, principal: Principal, *, owner: str | None = None) -> list[dict[str, Any]]:
         return self.store.list_events(run_id, owner=owner)
 
     def _lifecycle_budget(self, run_id: str) -> tuple[float, dict[str, Any]]:
@@ -285,15 +273,11 @@ class RunManager:
             created = datetime.fromisoformat(created_at)
             if created.tzinfo is None:
                 created = created.replace(tzinfo=timezone.utc)
-            wall_seconds = max(
-                0.0, (datetime.now(timezone.utc) - created).total_seconds()
-            )
+            wall_seconds = max(0.0, (datetime.now(timezone.utc) - created).total_seconds())
         except ValueError:
             wall_seconds = 0.0
         consumed = max(float(state.get("execution_seconds") or 0.0), wall_seconds)
-        remaining = max(
-            0.0, float(self.settings.agent_run_max_lifecycle_seconds) - consumed
-        )
+        remaining = max(0.0, float(self.settings.agent_run_max_lifecycle_seconds) - consumed)
         return remaining, {
             "consumed_seconds": round(consumed, 3),
             "execution_seconds": round(float(state.get("execution_seconds") or 0.0), 3),
@@ -306,9 +290,7 @@ class RunManager:
         state = self.store.lifecycle_state(run_id) or {}
         return {
             "execution_seconds": round(float(state.get("execution_seconds") or 0.0), 3),
-            "lifecycle_limit_seconds": float(
-                self.settings.agent_run_max_lifecycle_seconds
-            ),
+            "lifecycle_limit_seconds": float(self.settings.agent_run_max_lifecycle_seconds),
             "resume_count": int(state.get("resume_count") or 0),
             "last_resumed_at": state.get("last_resumed_at"),
         }
@@ -336,9 +318,7 @@ class RunManager:
             raise RunResumeError("agent_run_not_found", "no stored agent run for this run_id")
         with self._lock:
             if run_id in self._cancel_events:
-                raise RunResumeError(
-                    "run_already_active", "the run is still active in this process"
-                )
+                raise RunResumeError("run_already_active", "the run is still active in this process")
         resumable, reason = _is_resumable(document)
         if not resumable:
             raise RunResumeError("run_not_resumable", reason)
@@ -375,9 +355,7 @@ class RunManager:
                     },
                 )
             if attempt.reason == "not_found":
-                raise RunResumeError(
-                    "agent_run_not_found", "no stored agent run for this run_id"
-                )
+                raise RunResumeError("agent_run_not_found", "no stored agent run for this run_id")
             raise RunResumeError(
                 "run_not_resumable",
                 "the run changed state before the claim could be acquired",
@@ -596,9 +574,7 @@ class RunManager:
                     fence=claim,
                 )
                 return
-            self.store.update_status(
-                run_id, "running", owner=principal.principal_id, fence=claim
-            )
+            self.store.update_status(run_id, "running", owner=principal.principal_id, fence=claim)
             effective_seconds = min(
                 max_seconds or self.settings.agent_max_seconds,
                 self.settings.agent_max_seconds,
@@ -665,9 +641,7 @@ class RunManager:
             try:
                 elapsed = time.monotonic() - started
                 self.store.record_execution(claim, elapsed, resumed=False)
-                document = self._failed_document(
-                    run_id, request_id, question, principal, exc
-                )
+                document = self._failed_document(run_id, request_id, question, principal, exc)
                 document.update(self._lifecycle_payload(run_id))
                 self.store.put(
                     run_id,
@@ -742,11 +716,7 @@ class RunManager:
         def emit(event: dict[str, Any]) -> None:
             event_type = str(event.pop("event_type", "agent_event"))
             tool_call_id = event.get("call_id") or event.get("tool_call_id")
-            detail = {
-                key: value
-                for key, value in event.items()
-                if key not in {"call_id", "tool_call_id"}
-            }
+            detail = {key: value for key, value in event.items() if key not in {"call_id", "tool_call_id"}}
             self.store.append_event(
                 event_type=event_type,
                 run_id=run_id,
@@ -817,7 +787,7 @@ class RunManager:
                 "open_questions": [],
                 "errors": [],
                 "tool_calls_used": 0,
-                "max_tool_calls":0,
+                "max_tool_calls": 0,
                 "remaining_budget": 0,
                 "stop_reason": None,
             },

@@ -91,9 +91,7 @@ class FindingEngine:
                     statement=statement,
                     confidence=0.9 if change_rate is not None else 0.7,
                     confidence_basis="确定性期间对比同时返回当期值、基准值和变化率",
-                    limitations=[]
-                    if change_rate is not None
-                    else ["变化率缺失，只能确认两端数值"],
+                    limitations=[] if change_rate is not None else ["变化率缺失，只能确认两端数值"],
                     suggested_validation=["用 contribution 工具拆解变化来源"],
                     key=item.get("current_period"),
                 )
@@ -108,8 +106,7 @@ class FindingEngine:
             return []
         top = attribution.items[:3]
         detail = "；".join(
-            f"{item.dimension_value} 贡献 {_text(item.contribution)}"
-            f"（贡献率 {_text(item.contribution_rate)}）"
+            f"{item.dimension_value} 贡献 {_text(item.contribution)}（贡献率 {_text(item.contribution_rate)}）"
             for item in top
         )
         relative = (
@@ -123,15 +120,9 @@ class FindingEngine:
             f"相对基准期：绝对变化 {_text(attribution.absolute_change)}，"
             f"相对变化率 {relative}；按 {attribution.dimension} 的贡献拆解：{detail}。"
         )
-        limitations = [
-            check
-            for check in attribution.checks
-            if "残差" in check or "不适用" in check
-        ]
+        limitations = [check for check in attribution.checks if "残差" in check or "不适用" in check]
         if attribution.missing_data:
-            limitations.append(
-                "缺失数据：" + "、".join(attribution.missing_data)
-            )
+            limitations.append("缺失数据：" + "、".join(attribution.missing_data))
         return [
             self._make(
                 run_id,
@@ -151,16 +142,10 @@ class FindingEngine:
             )
         ]
 
-    def _legacy_contribution(
-        self, run_id: str, evidence: EvidenceRecord
-    ) -> list[Finding]:
+    def _legacy_contribution(self, run_id: str, evidence: EvidenceRecord) -> list[Finding]:
         """Handle older evidence payloads that predate the attribution contract."""
 
-        items = [
-            item
-            for item in evidence.result.get("items") or []
-            if item.get("contribution") is not None
-        ]
+        items = [item for item in evidence.result.get("items") or [] if item.get("contribution") is not None]
         if not items:
             return []
         items.sort(key=lambda item: abs(Decimal(str(item["contribution"]))), reverse=True)
@@ -202,8 +187,7 @@ class FindingEngine:
             return []
         top = items[:3]
         detail = "；".join(
-            f"第{item.get('rank')}名 {item.get('dimension_value')} 为 {_text(item.get('value'))}"
-            for item in top
+            f"第{item.get('rank')}名 {item.get('dimension_value')} 为 {_text(item.get('value'))}" for item in top
         )
         return [
             self._make(
@@ -296,9 +280,7 @@ class FindingEngine:
         ]
 
     # -- cross-domain --------------------------------------------------
-    def _cross_domain(
-        self, run_id: str, evidences: list[EvidenceRecord]
-    ) -> list[Finding]:
+    def _cross_domain(self, run_id: str, evidences: list[EvidenceRecord]) -> list[Finding]:
         candidates = [
             item
             for item in evidences
@@ -412,9 +394,9 @@ class FindingEngine:
         key: Any = None,
     ) -> Finding:
         evidence_ids = [left.evidence_id] + ([right.evidence_id] if right else [])
-        digest = hashlib.sha256(
-            "|".join([run_id, finding_type, statement, *evidence_ids]).encode("utf-8")
-        ).hexdigest()[:16]
+        digest = hashlib.sha256("|".join([run_id, finding_type, statement, *evidence_ids]).encode("utf-8")).hexdigest()[
+            :16
+        ]
         return Finding(
             finding_id=f"F-{digest}",
             run_id=run_id,
@@ -478,15 +460,11 @@ class FindingStore:
             for finding in items:
                 try:
                     with connection.begin_nested():
-                        connection.execute(
-                            insert(FINDING_TABLE).values(**self._to_row(finding))
-                        )
+                        connection.execute(insert(FINDING_TABLE).values(**self._to_row(finding)))
                     stored.append(finding)
                 except IntegrityError:
                     existing = connection.execute(
-                        select(FINDING_TABLE).where(
-                            FINDING_TABLE.c.finding_id == finding.finding_id
-                        )
+                        select(FINDING_TABLE).where(FINDING_TABLE.c.finding_id == finding.finding_id)
                     ).first()
                     if existing is not None:
                         stored.append(self._from_row(existing))
@@ -526,9 +504,7 @@ class FindingStore:
             "confidence_basis": finding.confidence_basis,
             "explanation": finding.explanation,
             "limitations": json.dumps(finding.limitations, ensure_ascii=False),
-            "suggested_validation": json.dumps(
-                finding.suggested_validation, ensure_ascii=False
-            ),
+            "suggested_validation": json.dumps(finding.suggested_validation, ensure_ascii=False),
             "created_at": finding.created_at.isoformat(timespec="seconds"),
         }
 

@@ -58,8 +58,7 @@ def _record(
         source_tables=["sales_fact"],
         calculation_method="deterministic metric aggregation",
         status=status,
-        fingerprint=fingerprint
-        or hashlib.sha256(json.dumps([start, end]).encode()).hexdigest(),
+        fingerprint=fingerprint or hashlib.sha256(json.dumps([start, end]).encode()).hexdigest(),
         created_at=datetime.now(timezone.utc),
         traceable=True,
     )
@@ -102,9 +101,7 @@ def test_record_roundtrip_preserves_all_mandated_fields(engine):
     assert fetched is not None
     assert fetched.result == record.result
     assert ledger.count(record.run_id) == 1
-    assert [item.evidence_id for item in ledger.list(record.run_id)] == [
-        record.evidence_id
-    ]
+    assert [item.evidence_id for item in ledger.list(record.run_id)] == [record.evidence_id]
 
 
 def test_same_fingerprint_is_idempotent_within_a_run(engine):
@@ -121,9 +118,7 @@ def test_same_fingerprint_is_idempotent_within_a_run(engine):
 def test_same_fingerprint_in_another_run_is_distinct(engine):
     ledger = EvidenceLedger(engine)
     ledger.record(_record(run_id="run-1", evidence_id="e-1", fingerprint="fp"))
-    _, inserted = ledger.record(
-        _record(run_id="run-2", evidence_id="e-2", fingerprint="fp")
-    )
+    _, inserted = ledger.record(_record(run_id="run-2", evidence_id="e-2", fingerprint="fp"))
     assert inserted is True
     assert ledger.count("run-2") == 1
 
@@ -138,9 +133,7 @@ def test_different_time_range_or_filters_are_not_merged(engine):
         end="2025-11-01",
     )
     other_filters = _record(evidence_id="e-3", fingerprint="fp-c")
-    other_filters.filters = [
-        {"dimension": "region", "operator": "eq", "value": "NC"}
-    ]
+    other_filters.filters = [{"dimension": "region", "operator": "eq", "value": "NC"}]
     ledger.record_many([base, other_month, other_filters])
     assert ledger.count("run-1") == 3
 

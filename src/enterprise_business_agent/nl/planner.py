@@ -13,8 +13,7 @@ from ..config import Settings
 from ..llm.client import LLMClient, LLMError, LLMInvalidResponse, LLMTimeout, LLMUnavailable
 from ..llm.schemas import IntentPlan
 from ..metric_resolver import DimensionRegistry, MetricResolver
-from ..semantic import load_dimensions, load_metrics, normalize_name
-
+from ..semantic import normalize_name
 
 PlanningProvider = Literal["rule", "llm", "none"]
 
@@ -57,9 +56,7 @@ _QUARTER_PATTERNS = [
     re.compile(r"(?P<year>\d{4})\s*[-年]?\s*Q\s*(?P<quarter>[1-4])", re.IGNORECASE),
     re.compile(r"(?P<year>\d{4})\s*年\s*第?\s*(?P<quarter>[1-4])\s*季度"),
 ]
-_MONTH_RANGE = re.compile(
-    r"(?P<year>\d{4})\s*年\s*(?P<m1>\d{1,2})\s*月?\s*(?:到|至|~|-)\s*(?P<m2>\d{1,2})\s*月"
-)
+_MONTH_RANGE = re.compile(r"(?P<year>\d{4})\s*年\s*(?P<m1>\d{1,2})\s*月?\s*(?:到|至|~|-)\s*(?P<m2>\d{1,2})\s*月")
 _MONTH = re.compile(r"(?P<year>\d{4})\s*(?:年|[-/])\s*(?P<month>\d{1,2})\s*月?")
 _YEAR = re.compile(r"(?P<year>\d{4})\s*年(?:度)?")
 _RECENT_MONTHS = re.compile(r"(?:最近|近)\s*(?P<count>[一二两三四五六七八九十\d]+)\s*个?月")
@@ -177,13 +174,7 @@ class RuleBasedPlanner:
         ascending = any(word in text for word in ("最低", "最差", "倒数", "bottom"))
         threshold = self._detect_threshold(text)
         kind = self._detect_comparison(text, quarter is not None or grain == TimeGrain.QUARTER)
-        if (
-            operation == "compare"
-            and kind == "yoy"
-            and detected_time
-            and quarter is None
-            and grain == TimeGrain.YEAR
-        ):
+        if operation == "compare" and kind == "yoy" and detected_time and quarter is None and grain == TimeGrain.YEAR:
             kind = "yoy_year"
 
         effective_end = min(as_of, self.settings.data_end)
@@ -239,11 +230,7 @@ class RuleBasedPlanner:
     def _detect_metric(self, normalized: str) -> tuple[str | None, bool, list[str]]:
         if "库存风险" in normalized or "缺货风险" in normalized:
             return "stockout_rate", False, []
-        matches = [
-            (length, alias, metric)
-            for length, alias, metric in self._metric_aliases
-            if alias in normalized
-        ]
+        matches = [(length, alias, metric) for length, alias, metric in self._metric_aliases if alias in normalized]
         if not matches:
             return None, False, []
         longest = matches[0][0]
@@ -560,9 +547,7 @@ class HybridPlanner:
         if intent.end is None:
             intent.end = self.settings.data_end
         if intent.operation == "compare" and intent.comparison_kind is None:
-            intent.comparison_kind = (
-                "yoy_quarter" if intent.quarter is not None else "yoy"
-            )
+            intent.comparison_kind = "yoy_quarter" if intent.quarter is not None else "yoy"
         if intent.operation == "compare" and intent.period is None:
             if intent.comparison_kind in {"qoq", "yoy_quarter"}:
                 intent.period = quarter_start(as_of)

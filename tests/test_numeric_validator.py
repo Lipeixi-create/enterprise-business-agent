@@ -145,11 +145,7 @@ def test_unit_mismatch_is_rejected(fixture_report):
 
 def test_rate_reference_accepts_ratio_but_amounts_cannot(fixture_report):
     report, evidence, findings = fixture_report
-    rate = next(
-        ref
-        for ref in report.conclusions[0].value_refs
-        if ref.field.endswith("change_rate")
-    )
+    rate = next(ref for ref in report.conclusions[0].value_refs if ref.field.endswith("change_rate"))
     assert rate.unit == "ratio"
     result = NumericValidator().validate(report, [evidence], findings)
     assert result.passed is True, result.issues
@@ -180,12 +176,7 @@ def test_tool_parameter_described_as_a_parameter_is_not_unsourced(fixture_report
     report.executive_summary = "贡献分析使用阈值 0.15，该值只作为工具参数。"
     result = NumericValidator().validate(report, [evidence], findings)
     assert result.passed is True, result.issues
-    assert any(
-        item.token == "0.15"
-        and item.category == "tool_parameter"
-        and item.allowed
-        for item in result.numbers
-    )
+    assert any(item.token == "0.15" and item.category == "tool_parameter" and item.allowed for item in result.numbers)
 
 
 def test_tool_parameter_written_as_business_rate_is_rejected(fixture_report):
@@ -195,12 +186,7 @@ def test_tool_parameter_written_as_business_rate_is_rejected(fixture_report):
     result = NumericValidator().validate(report, [evidence], findings)
     assert result.passed is False
     assert "tool_parameter_as_result" in _codes(result)
-    assert any(
-        item.token == "15"
-        and item.category == "tool_parameter"
-        and not item.allowed
-        for item in result.numbers
-    )
+    assert any(item.token == "15" and item.category == "tool_parameter" and not item.allowed for item in result.numbers)
 
 
 def test_contribution_threshold_0_2_is_a_tool_parameter(fixture_report):
@@ -209,12 +195,7 @@ def test_contribution_threshold_0_2_is_a_tool_parameter(fixture_report):
     report.executive_summary = "贡献分析使用阈值 0.2，仅用于筛选维度。"
     result = NumericValidator().validate(report, [evidence], findings)
     assert result.passed is True, result.issues
-    assert any(
-        item.token == "0.2"
-        and item.category == "tool_parameter"
-        and item.allowed
-        for item in result.numbers
-    )
+    assert any(item.token == "0.2" and item.category == "tool_parameter" and item.allowed for item in result.numbers)
 
 
 def test_contribution_threshold_0_2_written_as_20_percent_is_rejected(fixture_report):
@@ -228,10 +209,7 @@ def test_contribution_threshold_0_2_written_as_20_percent_is_rejected(fixture_re
     assert result.passed is False
     assert "tool_parameter_as_result" in _codes(result)
     assert any(
-        item.token == "20"
-        and item.category == "tool_parameter"
-        and item.allowed is False
-        for item in result.numbers
+        item.token == "20" and item.category == "tool_parameter" and item.allowed is False for item in result.numbers
     )
 
 
@@ -259,11 +237,7 @@ def test_unsourced_amounts_and_ratios_are_still_rejected(fixture_report):
     assert "unsourced_number" in _codes(result)
     assert "987654.32" in result.unverified_numbers
     assert "77.7" in result.unverified_numbers
-    assert all(
-        item.category == "unsupported_number"
-        for item in result.numbers
-        if item.token in {"987654.32", "77.7"}
-    )
+    assert all(item.category == "unsupported_number" for item in result.numbers if item.token in {"987654.32", "77.7"})
 
 
 def test_tool_parameter_used_as_business_result_without_percent_is_rejected(fixture_report):
@@ -370,9 +344,7 @@ def test_cross_run_evidence_is_rejected(fixture_report):
 
 def test_cross_run_finding_is_rejected(fixture_report):
     report, evidence, findings = fixture_report
-    other = findings[0].model_copy(
-        update={"run_id": "run-2", "evidence_ids": [evidence.evidence_id]}
-    )
+    other = findings[0].model_copy(update={"run_id": "run-2", "evidence_ids": [evidence.evidence_id]})
     result = NumericValidator().validate(report, [evidence], [other])
     assert "cross_run_finding" in _codes(result)
     assert result.passed is False
@@ -388,9 +360,7 @@ def test_finding_with_unknown_evidence_is_rejected(fixture_report):
 
 def test_duplicate_tool_call_id_is_rejected(fixture_report):
     report, evidence, findings = fixture_report
-    duplicate = evidence.model_copy(
-        update={"evidence_id": "e-second", "tool_call_id": evidence.tool_call_id}
-    )
+    duplicate = evidence.model_copy(update={"evidence_id": "e-second", "tool_call_id": evidence.tool_call_id})
     result = NumericValidator().validate(report, [evidence, duplicate], findings)
     assert "duplicate_tool_call_id" in _codes(result)
     assert result.passed is False

@@ -21,9 +21,7 @@ from ..security.audit import record_security_event
 
 MCP_PROTOCOL_VERSIONS = ("2025-06-18", "2025-03-26", "2024-11-05")
 _LATEST_PROTOCOL = MCP_PROTOCOL_VERSIONS[0]
-_NON_ERROR_STATUSES = frozenset(
-    {"ok", "no_data", "not_calculable", "insufficient_data"}
-)
+_NON_ERROR_STATUSES = frozenset({"ok", "no_data", "not_calculable", "insufficient_data"})
 _DENIED_STATUSES = frozenset({"permission_denied", "unknown_tool"})
 
 
@@ -76,9 +74,7 @@ class McpToolServer:
                 return 400, _error(None, -32600, "Invalid Request")
             responses = []
             for item in message:
-                status, body = self._handle_one(
-                    item, principal, request_id=request_id
-                )
+                status, body = self._handle_one(item, principal, request_id=request_id)
                 if status == 202 and body is None:
                     continue
                 if body is not None:
@@ -98,9 +94,7 @@ class McpToolServer:
         if not isinstance(message, dict):
             return 400, _error(None, -32600, "Invalid Request")
         if message.get("jsonrpc") != "2.0":
-            return 400, _error(
-                message.get("id"), -32600, "Invalid Request", {"reason": "jsonrpc must be 2.0"}
-            )
+            return 400, _error(message.get("id"), -32600, "Invalid Request", {"reason": "jsonrpc must be 2.0"})
         method = message.get("method")
         if not isinstance(method, str) or not method:
             return 400, _error(message.get("id"), -32600, "Invalid Request")
@@ -112,15 +106,9 @@ class McpToolServer:
 
         if method == "initialize":
             params = message.get("params")
-            requested = (
-                params.get("protocolVersion")
-                if isinstance(params, dict)
-                else None
-            )
+            requested = params.get("protocolVersion") if isinstance(params, dict) else None
             version = (
-                requested
-                if isinstance(requested, str) and requested in MCP_PROTOCOL_VERSIONS
-                else _LATEST_PROTOCOL
+                requested if isinstance(requested, str) and requested in MCP_PROTOCOL_VERSIONS else _LATEST_PROTOCOL
             )
             result = {
                 "protocolVersion": version,
@@ -207,23 +195,17 @@ class McpToolServer:
         request_id_value: Any,
     ) -> dict[str, Any]:
         if not isinstance(params, dict):
-            self._audit_protocol_error(
-                principal, request_id=request_id, method="tools/call", code=-32602
-            )
+            self._audit_protocol_error(principal, request_id=request_id, method="tools/call", code=-32602)
             return _error(request_id_value, -32602, "Invalid params", {"reason": "params must be an object"})
         name = params.get("name")
         arguments = params.get("arguments", {})
         if not isinstance(name, str) or not name:
-            self._audit_protocol_error(
-                principal, request_id=request_id, method="tools/call", code=-32602
-            )
+            self._audit_protocol_error(principal, request_id=request_id, method="tools/call", code=-32602)
             return _error(request_id_value, -32602, "Invalid params", {"reason": "name must be a string"})
         if arguments is None:
             arguments = {}
         if not isinstance(arguments, dict):
-            self._audit_protocol_error(
-                principal, request_id=request_id, method="tools/call", code=-32602
-            )
+            self._audit_protocol_error(principal, request_id=request_id, method="tools/call", code=-32602)
             return _error(
                 request_id_value,
                 -32602,
@@ -231,9 +213,7 @@ class McpToolServer:
                 {"reason": "arguments must be an object"},
             )
         if self.registry is None:
-            self._audit_protocol_error(
-                principal, request_id=request_id, method="tools/call", code=-32603
-            )
+            self._audit_protocol_error(principal, request_id=request_id, method="tools/call", code=-32603)
             return _error(request_id_value, -32603, "Internal error", {"reason": "tool registry unavailable"})
 
         call_id = f"mcp-{uuid.uuid4()}"
@@ -247,9 +227,7 @@ class McpToolServer:
             payload = result.model_dump(mode="json")
             status = str(result.status)
         except Exception as exc:  # noqa: BLE001 - protocol errors must stay structured
-            self._audit_protocol_error(
-                principal, request_id=request_id, method="tools/call", code=-32603
-            )
+            self._audit_protocol_error(principal, request_id=request_id, method="tools/call", code=-32603)
             if self.logger is not None:
                 self.logger.error(
                     "mcp_tool_error",

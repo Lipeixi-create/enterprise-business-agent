@@ -42,9 +42,7 @@ def main() -> int:
         agent_tool_timeout_seconds=5,
         agent_tool_max_retries=0,
     )
-    principal = Principal(
-        "key:eval", "analyst", frozenset({"metrics:read", "agent:run"})
-    )
+    principal = Principal("key:eval", "analyst", frozenset({"metrics:read", "agent:run"}))
     print("planner: fake-offline-plan-llm (scripted test double, NOT a real LLM)")
     print(f"cases: {len(cases)}")
     print("dimensions: planning | query | conclusion | status")
@@ -58,9 +56,7 @@ def main() -> int:
         with Session(write_engine) as seed:
             generate_data(seed, date(2024, 1, 1), 24, reset=False)
             seed.commit()
-        read_engine = make_readonly_engine(
-            f"sqlite:///{path}", settings.query_timeout_ms
-        )
+        read_engine = make_readonly_engine(f"sqlite:///{path}", settings.query_timeout_ms)
         factory = sessionmaker(bind=read_engine, class_=Session, expire_on_commit=False)
         registry = ToolRegistry(
             AnalysisGateway(factory, settings),

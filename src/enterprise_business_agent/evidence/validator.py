@@ -228,9 +228,7 @@ def _parameter_context(before: str, after: str) -> bool:
 
 
 def _rate_claim(percent: bool, before: str, after: str) -> bool:
-    if _parameter_context(before, after) and not any(
-        word in before[-8:] + after[:8] for word in _RATE_MARKERS
-    ):
+    if _parameter_context(before, after) and not any(word in before[-8:] + after[:8] for word in _RATE_MARKERS):
         return False
     return percent or any(word in before[-10:] + after[:10] for word in _RATE_MARKERS)
 
@@ -240,10 +238,7 @@ def _year_context(token: str, before: str, after: str) -> bool:
 
     if not re.fullmatch(r"(?:19|20)\d{2}", token):
         return False
-    return bool(
-        re.match(r"\s*(?:年|[-/.]\s*\d{1,2}\b)", after)
-        or re.search(r"(?:年|[-/.]|第)\s*$", before)
-    )
+    return bool(re.match(r"\s*(?:年|[-/.]\s*\d{1,2}\b)", after) or re.search(r"(?:年|[-/.]|第)\s*$", before))
 
 
 def _classify_number(
@@ -266,13 +261,9 @@ def _classify_number(
     if parsed in index.date_components and _year_context(token, before, after):
         return "date_component", True, None, None
 
-    in_parameters = (
-        ratio in index.tool_parameters if percent else parsed in index.tool_parameters
-    )
+    in_parameters = ratio in index.tool_parameters if percent else parsed in index.tool_parameters
     if in_parameters:
-        if _parameter_context(before, after) and not _rate_claim(
-            percent, before, after
-        ):
+        if _parameter_context(before, after) and not _rate_claim(percent, before, after):
             return "tool_parameter", True, None, None
         return (
             "tool_parameter",
@@ -417,10 +408,7 @@ class NumericValidator:
                 issues.append(
                     ValidationIssue(
                         code="finding_unknown_evidence",
-                        message=(
-                            f"Finding {finding.finding_id!r} 引用了当前 run "
-                            f"不存在的 evidence_id：{unknown}"
-                        ),
+                        message=(f"Finding {finding.finding_id!r} 引用了当前 run 不存在的 evidence_id：{unknown}"),
                     )
                 )
 
@@ -511,9 +499,7 @@ class NumericValidator:
                     )
 
         checks.append("scope_filters_match_evidence")
-        observed_filters = {
-            _canonical(item) for evidence in evidences for item in evidence.filters
-        }
+        observed_filters = {_canonical(item) for evidence in evidences for item in evidence.filters}
         declared_filters = {_canonical(item) for item in report.data_scope.filters}
         if declared_filters != observed_filters:
             missing = sorted(observed_filters - declared_filters)
@@ -532,9 +518,7 @@ class NumericValidator:
             for evidence in evidences
             if evidence.time_range_start and evidence.time_range_end
         }
-        declared_ranges = {
-            (item.get("start"), item.get("end")) for item in report.data_scope.time_ranges
-        }
+        declared_ranges = {(item.get("start"), item.get("end")) for item in report.data_scope.time_ranges}
         if declared_ranges != observed_ranges:
             issues.append(
                 ValidationIssue(
@@ -598,7 +582,10 @@ class NumericValidator:
                 finding = findings_by_id.get(finding_id)
                 if finding is None:
                     continue
-                if finding.finding_type in {"hypothesis", "correlation", "recommendation"} and conclusion.certainty == "fact":
+                if (
+                    finding.finding_type in {"hypothesis", "correlation", "recommendation"}
+                    and conclusion.certainty == "fact"
+                ):
                     issues.append(
                         ValidationIssue(
                             code="hypothesis_as_fact",
@@ -609,9 +596,7 @@ class NumericValidator:
 
         checks.append("no_causal_overreach")
         for location, text in self._iter_text(report):
-            if any(word in text for word in _CAUSAL_WORDS) and not any(
-                hedge in text for hedge in _HEDGES
-            ):
+            if any(word in text for word in _CAUSAL_WORDS) and not any(hedge in text for hedge in _HEDGES):
                 issues.append(
                     ValidationIssue(
                         code="causal_overreach",
@@ -638,10 +623,7 @@ class NumericValidator:
                     issues.append(
                         ValidationIssue(
                             code="direction_contradiction",
-                            message=(
-                                f"{location} 表述方向与证据 {ref.evidence_id} 的 "
-                                f"{ref.field}={resolved} 相反"
-                            ),
+                            message=(f"{location} 表述方向与证据 {ref.evidence_id} 的 {ref.field}={resolved} 相反"),
                             location=location,
                             evidence_id=ref.evidence_id,
                         )

@@ -30,9 +30,7 @@ FAULT_PROTOCOL = "protocol"
 FAULT_CIRCUIT_OPEN = "circuit_open"
 FAULT_CANCELLED = "cancelled"
 
-TRANSIENT_FAULTS = frozenset(
-    {FAULT_TIMEOUT, FAULT_CONNECTION, FAULT_RATE_LIMIT, FAULT_SERVER}
-)
+TRANSIENT_FAULTS = frozenset({FAULT_TIMEOUT, FAULT_CONNECTION, FAULT_RATE_LIMIT, FAULT_SERVER})
 
 
 class CircuitOpenError(Exception):
@@ -40,22 +38,14 @@ class CircuitOpenError(Exception):
 
     def __init__(self, retry_in_seconds: float):
         self.retry_in_seconds = max(0.0, float(retry_in_seconds))
-        super().__init__(
-            f"provider circuit is open; retry in {self.retry_in_seconds:.2f}s"
-        )
+        super().__init__(f"provider circuit is open; retry in {self.retry_in_seconds:.2f}s")
 
 
-_ACTIVE_CANCEL_EVENT: contextvars.ContextVar[Any] = contextvars.ContextVar(
-    "eba_llm_cancel_event", default=None
-)
-_ACTIVE_DEADLINE: contextvars.ContextVar[float | None] = contextvars.ContextVar(
-    "eba_llm_deadline", default=None
-)
+_ACTIVE_CANCEL_EVENT: contextvars.ContextVar[Any] = contextvars.ContextVar("eba_llm_cancel_event", default=None)
+_ACTIVE_DEADLINE: contextvars.ContextVar[float | None] = contextvars.ContextVar("eba_llm_deadline", default=None)
 
 
-def bind_run_context(
-    cancel_event: Any, deadline: float | None
-) -> tuple[contextvars.Token, contextvars.Token]:
+def bind_run_context(cancel_event: Any, deadline: float | None) -> tuple[contextvars.Token, contextvars.Token]:
     """Bind the current Agent Run's cancellation event and monotonic deadline.
 
     The agent graph invokes the LLM client on the same thread that owns the
@@ -68,9 +58,7 @@ def bind_run_context(
     return cancel_token, deadline_token
 
 
-def reset_run_context(
-    tokens: tuple[contextvars.Token, contextvars.Token]
-) -> None:
+def reset_run_context(tokens: tuple[contextvars.Token, contextvars.Token]) -> None:
     cancel_token, deadline_token = tokens
     _ACTIVE_DEADLINE.reset(deadline_token)
     _ACTIVE_CANCEL_EVENT.reset(cancel_token)
@@ -133,9 +121,7 @@ def next_retry_delay(
     """
 
     delay = (
-        retry_after
-        if retry_after is not None
-        else min(max(0.0, base_seconds) * (2**attempt), max(0.0, max_seconds))
+        retry_after if retry_after is not None else min(max(0.0, base_seconds) * (2**attempt), max(0.0, max_seconds))
     )
     delay = max(0.0, delay)
     if deadline is None:

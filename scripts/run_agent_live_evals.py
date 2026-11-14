@@ -82,10 +82,7 @@ def main() -> int:
         f"key={'configured' if settings.llm_enabled else 'not configured'}"
     )
     if not settings.llm_enabled:
-        print(
-            f"FAIL: no API key for provider {settings.llm_provider!r}; "
-            "real LLM calls: 0."
-        )
+        print(f"FAIL: no API key for provider {settings.llm_provider!r}; real LLM calls: 0.")
         return 1
     issues = settings.llm_endpoint_issues()
     if issues:
@@ -108,9 +105,7 @@ def main() -> int:
         print("FAIL: no cases selected.")
         return 1
 
-    engine = make_readonly_engine(
-        settings.application_database_url, settings.query_timeout_ms
-    )
+    engine = make_readonly_engine(settings.application_database_url, settings.query_timeout_ms)
     factory = sessionmaker(bind=engine, class_=Session, expire_on_commit=False)
     registry = ToolRegistry(
         AnalysisGateway(factory, settings),
@@ -171,15 +166,9 @@ def main() -> int:
         "unscored_cases": len(records) - len(scored),
         "stopped_reason": stopped_reason,
         "wall_time_ms": total_latency,
-        "llm_latency_ms_sum": round(
-            sum(item["llm_latency_ms"] or 0 for item in records), 3
-        ),
-        "input_tokens_sum": sum(
-            (item["llm_tokens"] or {}).get("input", 0) for item in records
-        ),
-        "output_tokens_sum": sum(
-            (item["llm_tokens"] or {}).get("output", 0) for item in records
-        ),
+        "llm_latency_ms_sum": round(sum(item["llm_latency_ms"] or 0 for item in records), 3),
+        "input_tokens_sum": sum((item["llm_tokens"] or {}).get("input", 0) for item in records),
+        "output_tokens_sum": sum((item["llm_tokens"] or {}).get("output", 0) for item in records),
         "records": records,
     }
     print(

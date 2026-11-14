@@ -66,14 +66,8 @@ def main() -> int:
     )
     if not settings.llm_enabled:
         if Path(".env").exists():
-            print(
-                "NOTE: a .env file was found but did not provide a key for "
-                f"provider {settings.llm_provider!r}."
-            )
-        print(
-            f"FAIL: no API key for provider {settings.llm_provider!r}; "
-            "real LLM calls: 0."
-        )
+            print(f"NOTE: a .env file was found but did not provide a key for provider {settings.llm_provider!r}.")
+        print(f"FAIL: no API key for provider {settings.llm_provider!r}; real LLM calls: 0.")
         return 1
     issues = settings.llm_endpoint_issues()
     if issues:
@@ -115,14 +109,10 @@ def main() -> int:
     print(f"planner={result.planner} planner_model={result.planner_model}")
     print("\ntrace:")
     for step in result.steps:
-        print(
-            f"  step {step.index}: action={step.action} tool={step.tool} "
-            f"call_id={step.tool_call_id}"
-        )
+        print(f"  step {step.index}: action={step.action} tool={step.tool} call_id={step.tool_call_id}")
     for call in result.tool_calls:
         print(
-            f"  tool {call.tool} status={call.status} duration_ms={call.duration_ms} "
-            f"evidence_ids={call.evidence_ids}"
+            f"  tool {call.tool} status={call.status} duration_ms={call.duration_ms} evidence_ids={call.evidence_ids}"
         )
         print(f"    args={json.dumps(call.arguments, ensure_ascii=False)}")
         print(f"    summary={call.summary}")

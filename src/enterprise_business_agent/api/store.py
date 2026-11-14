@@ -43,7 +43,6 @@ class ResultStore:
 
     def _evict(self, now: float) -> None:
         while self._items and (
-            len(self._items) > self.max_items
-            or now - next(iter(self._items.values()))[0] > self.ttl_seconds
+            len(self._items) > self.max_items or now - next(iter(self._items.values()))[0] > self.ttl_seconds
         ):
             self._items.popitem(last=False)

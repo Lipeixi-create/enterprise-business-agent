@@ -26,7 +26,6 @@ from enterprise_business_agent.observability.setup import (
 from enterprise_business_agent.security import AuthorizationPolicy, Principal
 from tests.agent_fakes import ScriptedLLM, finish_response, tool_response
 
-
 ANALYST = Principal("key:test", "analyst", frozenset({"metrics:read", "agent:run"}))
 QUESTION = "分析华东 2025 年 12 月销售额下降原因"
 
@@ -49,9 +48,7 @@ def env(tmp_path):
     with Session(write_engine) as seed:
         generate_data(seed, date(2024, 1, 1), 24, reset=False)
         seed.commit()
-    read_engine = make_readonly_engine(
-        f"sqlite:///{db_path}", settings.query_timeout_ms
-    )
+    read_engine = make_readonly_engine(f"sqlite:///{db_path}", settings.query_timeout_ms)
     factory = sessionmaker(bind=read_engine, class_=Session, expire_on_commit=False)
     run_engine = make_engine(f"sqlite:///{tmp_path / 'runs.db'}")
     pipeline = Phase5Pipeline(run_engine, llm=None, narrative_enabled=False)
@@ -106,9 +103,9 @@ def _contribution_call(call_id: str = "c2"):
 
 
 def test_agent_persists_evidence_findings_and_report(env):
-    result = _runtime(
-        env, ScriptedLLM([_compare_call(), _contribution_call(), finish_response("完成")])
-    ).run(QUESTION, ANALYST, run_id="run-int-1")
+    result = _runtime(env, ScriptedLLM([_compare_call(), _contribution_call(), finish_response("完成")])).run(
+        QUESTION, ANALYST, run_id="run-int-1"
+    )
 
     assert result.status == AgentStatus.COMPLETED
     assert result.report_id
@@ -119,9 +116,7 @@ def test_agent_persists_evidence_findings_and_report(env):
 
     evidences = env.pipeline.ledger.list("run-int-1")
     assert [item.evidence_type for item in evidences] == ["comparison", "contribution"]
-    assert [item.tool_call_id for item in evidences] == [
-        call.call_id for call in result.tool_calls
-    ]
+    assert [item.tool_call_id for item in evidences] == [call.call_id for call in result.tool_calls]
     assert all(item.run_id == "run-int-1" for item in evidences)
 
     findings = env.pipeline.finding_store.list("run-int-1")
@@ -131,9 +126,7 @@ def test_agent_persists_evidence_findings_and_report(env):
     stored = env.pipeline.report_store.latest("run-int-1")
     assert stored is not None
     assert stored.report.report_info.run_id == "run-int-1"
-    assert {item.evidence_id for item in stored.report.evidence_references} == {
-        item.evidence_id for item in evidences
-    }
+    assert {item.evidence_id for item in stored.report.evidence_references} == {item.evidence_id for item in evidences}
     assert stored.validation.passed is True
 
 
@@ -147,9 +140,7 @@ def test_insufficient_data_call_is_recorded_but_not_turned_into_finding(env):
                     "metric": "sales_amount",
                     "start": "2025-12-01",
                     "end": "2025-12-01",
-                    "filters": [
-                        {"dimension": "region", "operator": "eq", "value": "ZZ"}
-                    ],
+                    "filters": [{"dimension": "region", "operator": "eq", "value": "ZZ"}],
                 },
             ),
             finish_response("没有可用数据。"),
@@ -204,9 +195,7 @@ def test_failed_tool_call_keeps_error_and_cannot_be_cited_as_fact(env):
 def test_budget_exhaustion_reports_existing_results_and_incompleteness(env):
     settings = env.settings.model_copy(update={"agent_max_tool_calls": 1})
     llm = ScriptedLLM([_compare_call(), _contribution_call(), finish_response("完成")])
-    result = _runtime(env, llm, settings=settings).run(
-        QUESTION, ANALYST, run_id="run-int-budget"
-    )
+    result = _runtime(env, llm, settings=settings).run(QUESTION, ANALYST, run_id="run-int-budget")
 
     assert result.status == AgentStatus.BUDGET_EXHAUSTED
     assert len(env.pipeline.ledger.list("run-int-budget")) == 1
@@ -223,9 +212,7 @@ def test_phase5_failure_does_not_break_the_agent_run(env, monkeypatch):
         raise RuntimeError("ledger unavailable")
 
     monkeypatch.setattr(env.pipeline, "finalize", boom)
-    result = _runtime(env, ScriptedLLM([finish_response("完成")])).run(
-        QUESTION, ANALYST, run_id="run-int-p5fail"
-    )
+    result = _runtime(env, ScriptedLLM([finish_response("完成")])).run(QUESTION, ANALYST, run_id="run-int-p5fail")
     assert result.status in {
         AgentStatus.COMPLETED,
         AgentStatus.NO_EVIDENCE,
@@ -249,9 +236,7 @@ def test_one_trace_covers_decision_tool_sql_evidence_and_report(env, tmp_path):
     try:
         result = _runtime(
             env,
-            ScriptedLLM(
-                [_compare_call(), _contribution_call(), finish_response("完成")]
-            ),
+            ScriptedLLM([_compare_call(), _contribution_call(), finish_response("完成")]),
             settings=settings,
         ).run(QUESTION, ANALYST, run_id="run-int-trace")
         assert result.status == AgentStatus.COMPLETED
@@ -260,11 +245,7 @@ def test_one_trace_covers_decision_tool_sql_evidence_and_report(env, tmp_path):
         shutdown_tracing()
         reset_tracing()
 
-    spans = [
-        json.loads(line)
-        for line in trace_file.read_text(encoding="utf-8").splitlines()
-        if line.strip()
-    ]
+    spans = [json.loads(line) for line in trace_file.read_text(encoding="utf-8").splitlines() if line.strip()]
     names = {item["name"] for item in spans}
     assert {
         "agent.run",
@@ -277,7 +258,5 @@ def test_one_trace_covers_decision_tool_sql_evidence_and_report(env, tmp_path):
         "report.generate",
         "approval.ensure",
     } <= names
-    trace_ids = {
-        item["context"]["trace_id"] for item in spans if item["name"] != "checkpoint.restore"
-    }
+    trace_ids = {item["context"]["trace_id"] for item in spans if item["name"] != "checkpoint.restore"}
     assert len(trace_ids) == 1, f"spans were split across traces: {trace_ids}"

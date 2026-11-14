@@ -8,7 +8,6 @@ from typing import Any, Iterable
 from ..analysis.contracts import DimensionFilter
 from ..config import Settings
 
-
 _READ_SCOPES = frozenset(
     {
         "run:read",
@@ -44,10 +43,7 @@ ROLE_SCOPES: dict[str, frozenset[str]] = {
         }
     )
     | _READ_SCOPES,
-    "approver": frozenset(
-        {"approval:decide", "resource:read_any"}
-    )
-    | _READ_SCOPES,
+    "approver": frozenset({"approval:decide", "resource:read_any"}) | _READ_SCOPES,
     "sales_analyst": frozenset({"metrics:read", "agent:run"}) | _READ_SCOPES,
     "marketing_analyst": frozenset({"metrics:read", "agent:run"}) | _READ_SCOPES,
     "finance_analyst": frozenset({"metrics:read", "agent:run"}) | _READ_SCOPES,
@@ -164,16 +160,10 @@ class AuthorizationPolicy:
                 detail={"required_scope": scope, "role": principal.role},
             )
 
-    def require_tool(
-        self, principal: Principal, scope: str, tool_name: str | None = None
-    ) -> None:
+    def require_tool(self, principal: Principal, scope: str, tool_name: str | None = None) -> None:
         self.require_scope(principal, scope)
         allowed_tools = self._rule(principal.role).get("tools")
-        if (
-            tool_name is not None
-            and allowed_tools is not None
-            and tool_name not in allowed_tools
-        ):
+        if tool_name is not None and allowed_tools is not None and tool_name not in allowed_tools:
             raise AuthorizationError(
                 f"tool {tool_name!r} is not allowed for role {principal.role!r}",
                 detail={"tool": tool_name, "role": principal.role},
@@ -186,9 +176,7 @@ class AuthorizationPolicy:
             return False
         return True
 
-    def require_resource(
-        self, principal: Principal, resource: str, owner: str
-    ) -> None:
+    def require_resource(self, principal: Principal, resource: str, owner: str) -> None:
         """Authorize access to a stored run artifact.
 
         Ownership is the default boundary. Only principals with
@@ -211,9 +199,7 @@ class AuthorizationPolicy:
             detail={"resource": resource, "role": principal.role},
         )
 
-    def resource_allowed(
-        self, principal: Principal, resource: str, owner: str
-    ) -> bool:
+    def resource_allowed(self, principal: Principal, resource: str, owner: str) -> bool:
         try:
             self.require_resource(principal, resource, owner)
         except AuthorizationError:
@@ -296,17 +282,13 @@ class AuthorizationPolicy:
                 )
             if item.dimension == "region" and allowed_regions is not None:
                 values = item.value if isinstance(item.value, list) else [item.value]
-                if item.operator not in {"eq", "in"} or any(
-                    str(value) not in allowed_regions for value in values
-                ):
+                if item.operator not in {"eq", "in"} or any(str(value) not in allowed_regions for value in values):
                     raise AuthorizationError(
                         f"region filter is outside the allowed regions {sorted(allowed_regions)!r}",
                         detail={"region_filter": item.model_dump(mode="json"), "role": principal.role},
                     )
 
-    def require_region_scope(
-        self, principal: Principal, filters: Iterable[DimensionFilter]
-    ) -> None:
+    def require_region_scope(self, principal: Principal, filters: Iterable[DimensionFilter]) -> None:
         """A region-restricted role must constrain every query to its regions.
 
         ``require_filters`` alone only validates filters that happen to be
@@ -356,7 +338,4 @@ class AuthorizationPolicy:
         """
 
         rule = self._rule(principal.role)
-        return not any(
-            key in rule
-            for key in ("metrics", "domains", "resources", "dimensions", "regions", "tools")
-        )
+        return not any(key in rule for key in ("metrics", "domains", "resources", "dimensions", "regions", "tools"))

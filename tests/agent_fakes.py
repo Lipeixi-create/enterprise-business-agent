@@ -10,7 +10,6 @@ from typing import Any, Callable
 
 from enterprise_business_agent.llm import LLMToolCall, LLMToolResponse
 
-
 Response = LLMToolResponse | Exception | Callable[["ScriptedLLM"], LLMToolResponse]
 
 

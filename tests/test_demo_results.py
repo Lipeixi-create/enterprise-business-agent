@@ -86,10 +86,7 @@ def test_demo_department_labor_cost_contribution(analyzer):
     result = response.result
     assert result.total_change == Decimal("13202974.00")
     assert result.sum_contributions == Decimal("13202974.00")
-    values = [
-        (item.dimension_value, item.contribution, round(item.contribution_rate, 4))
-        for item in result.items
-    ]
+    values = [(item.dimension_value, item.contribution, round(item.contribution_rate, 4)) for item in result.items]
     assert values == [
         ("SALES", Decimal("4967400.00"), Decimal("0.3762")),
         ("MARKETING", Decimal("3373890.00"), Decimal("0.2555")),

@@ -26,7 +26,6 @@ from enterprise_business_agent.security import (
 )
 from enterprise_business_agent.semantic import load_metrics
 
-
 ANALYST = Principal("key:test", "analyst", frozenset({"metrics:read", "agent:run"}))
 
 
@@ -187,9 +186,7 @@ def test_all_data_tools_execute_through_the_structured_executor(boundary_env):
 
 def test_guard_rejects_tampered_metric_definition(boundary_env):
     compiled = _compile(boundary_env)
-    tampered_metric = compiled.metric.model_copy(
-        update={"numerator": "SUM(sales_amount) + 1"}
-    )
+    tampered_metric = compiled.metric.model_copy(update={"numerator": "SUM(sales_amount) + 1"})
     tampered = dataclasses.replace(compiled, metric=tampered_metric)
     with pytest.raises(GuardRejection) as exc:
         boundary_env["guard"].validate(tampered)
@@ -211,14 +208,11 @@ def test_guard_rejects_non_select_statement(boundary_env):
 def test_guard_rejects_statement_reading_another_table(boundary_env):
     compiled = _compile(boundary_env)
     hr = Base.metadata.tables["hr_monthly"]
-    forged_statement = (
-        select(
-            hr.c.period.label("period"),
-            literal_column("SUM(labor_cost)").label("numerator_value"),
-            literal_column("NULL").label("denominator_value"),
-        )
-        .select_from(hr)
-    )
+    forged_statement = select(
+        hr.c.period.label("period"),
+        literal_column("SUM(labor_cost)").label("numerator_value"),
+        literal_column("NULL").label("denominator_value"),
+    ).select_from(hr)
     forged = dataclasses.replace(compiled, statement=forged_statement)
     with pytest.raises(GuardRejection) as exc:
         boundary_env["guard"].validate(forged)

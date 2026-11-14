@@ -40,11 +40,17 @@ from enterprise_business_agent.agent.evaluation import (  # noqa: E402
 )
 from enterprise_business_agent.agent.live_readiness import (  # noqa: E402
     FAIL as CHECK_FAIL,
-    PASS as CHECK_PASS,
-    WARN as CHECK_WARN,
+)
+from enterprise_business_agent.agent.live_readiness import (
     FIRST_ROUND_IDS,
     config_snapshot,
     live_preflight,
+)
+from enterprise_business_agent.agent.live_readiness import (
+    PASS as CHECK_PASS,
+)
+from enterprise_business_agent.agent.live_readiness import (
+    WARN as CHECK_WARN,
 )
 from enterprise_business_agent.config import get_settings  # noqa: E402
 from enterprise_business_agent.db import make_readonly_engine  # noqa: E402
@@ -126,10 +132,7 @@ def check_corpus(cases: list, *, require_size: bool = True) -> list[str]:
                 try:
                     float(case.query_check.equals.replace(",", ""))
                 except ValueError:
-                    problems.append(
-                        f"{case.id}: non-numeric expectation requires "
-                        "expect_number=false"
-                    )
+                    problems.append(f"{case.id}: non-numeric expectation requires expect_number=false")
         if case.require_order and len(case.required_calls) < 2:
             problems.append(f"{case.id}: require_order needs at least two calls")
     return problems
@@ -143,9 +146,7 @@ def _cost_block(summary: dict, settings) -> dict:
     configured = price_in is not None and price_out is not None
     estimated = None
     if configured:
-        estimated = round(
-            tokens_in / 1_000_000 * price_in + tokens_out / 1_000_000 * price_out, 6
-        )
+        estimated = round(tokens_in / 1_000_000 * price_in + tokens_out / 1_000_000 * price_out, 6)
     runs = summary["overall"]["scored_cases"] or 0
     return {
         "estimated": configured,
@@ -155,9 +156,7 @@ def _cost_block(summary: dict, settings) -> dict:
         "output_price_per_million_tokens": price_out,
         "tokens": {"input": tokens_in, "output": tokens_out},
         "estimated_total": estimated,
-        "estimated_per_case": (
-            round(estimated / runs, 6) if estimated is not None and runs else None
-        ),
+        "estimated_per_case": (round(estimated / runs, 6) if estimated is not None and runs else None),
         "basis": "token_count_x_configured_price",
         "note": (
             "价格来自配置，不是账单。未配置价格时不做估算。"
@@ -196,11 +195,7 @@ def render_markdown(payload: dict) -> str:
         "",
         f"生成时间：{payload['generated_at']}",
         "",
-        (
-            "> 本报告来自真实模型调用。"
-            if summary["real_llm"]
-            else "> **本报告不是真实模型结果**：未调用任何真实模型。"
-        ),
+        ("> 本报告来自真实模型调用。" if summary["real_llm"] else "> **本报告不是真实模型结果**：未调用任何真实模型。"),
         "",
         "## 1. 基本信息",
         "",
@@ -272,20 +267,11 @@ def render_markdown(payload: dict) -> str:
         ("叙述完整率", "narrative_completeness"),
     ]
     for label, key in rows:
-        lines.append(
-            f"| {label} | {_fmt(overall.get(key))} | {overall.get(f'{key}_evaluated', 0)} |"
-        )
+        lines.append(f"| {label} | {_fmt(overall.get(key))} | {overall.get(f'{key}_evaluated', 0)} |")
     scored_cases = int(overall.get("scored_cases") or 0)
     relation_failures = int(overall.get("relation_validation_failures") or 0)
-    relation_rate = (
-        round((scored_cases - relation_failures) / scored_cases, 4)
-        if scored_cases
-        else None
-    )
-    lines.append(
-        f"| 业务关系一致性（最大/最小、排序、排名、数量） | "
-        f"{_fmt(relation_rate)} | {scored_cases} |"
-    )
+    relation_rate = round((scored_cases - relation_failures) / scored_cases, 4) if scored_cases else None
+    lines.append(f"| 业务关系一致性（最大/最小、排序、排名、数量） | {_fmt(relation_rate)} | {scored_cases} |")
 
     lines += [
         "",
@@ -406,15 +392,15 @@ class _BudgetedClient:
         if self.remaining <= 0:
             self.refused += 1
             raise ModelCallBudgetExceeded(
-                f"local hard cap of {self.sent} model calls reached; "
-                "another call was refused"
+                f"local hard cap of {self.sent} model calls reached; another call was refused"
             )
         self.remaining -= 1
         self.sent += 1
         return self._inner.complete_with_tools(**kwargs)
 
 
-def _eval_error_record(case, exc: Exception) -> dict:    return {
+def _eval_error_record(case, exc: Exception) -> dict:
+    return {
         "id": case.id,
         "category": case.category,
         "question": case.question,
@@ -522,10 +508,7 @@ def _execute_cases(
                 )
                 break
             if continue_on_failure:
-                printer(
-                    f"CONTINUE: {result.id} ended with {result.status}; "
-                    "recorded as a hard failure."
-                )
+                printer(f"CONTINUE: {result.id} ended with {result.status}; recorded as a hard failure.")
                 continue
             stopped_reason = f"{result.id}:{result.status}"
             budget_stop_reason = _budget_stop_reason(result.status)
@@ -539,9 +522,7 @@ def _execute_cases(
         "stopped_reason": stopped_reason,
         "budget_stop_reason": budget_stop_reason,
         "wall_time_ms": round((clock() - started) * 1000, 3),
-        "not_executed_cases": [
-            case.id for case in cases if case.id not in set(executed_ids)
-        ],
+        "not_executed_cases": [case.id for case in cases if case.id not in set(executed_ids)],
     }
 
 
@@ -556,15 +537,9 @@ def _print_readiness(readiness) -> None:
     # A missing operator flag is not a broken environment; say so explicitly so
     # nobody "fixes" a working provider configuration.
     if readiness.operator_gated:
-        print(
-            "  operator gates not opened: "
-            + ", ".join(item.name for item in readiness.operator_gated)
-        )
+        print("  operator gates not opened: " + ", ".join(item.name for item in readiness.operator_gated))
     if readiness.environment_blockers:
-        print(
-            "  environment blockers: "
-            + ", ".join(item.name for item in readiness.environment_blockers)
-        )
+        print("  environment blockers: " + ", ".join(item.name for item in readiness.environment_blockers))
 
 
 def _select_cases(cases: list, args) -> list:
@@ -586,11 +561,11 @@ def _select_cases(cases: list, args) -> list:
 def main() -> int:
     parser = argparse.ArgumentParser(description="Run Phase 7 evaluations")
     parser.add_argument("--corpus", default=str(DEFAULT_CORPUS))
-    parser.add_argument("--include-base", action="store_true", default=True,
-                        help="include the Phase 4 live corpus (default: true)")
+    parser.add_argument(
+        "--include-base", action="store_true", default=True, help="include the Phase 4 live corpus (default: true)"
+    )
     parser.add_argument("--no-include-base", dest="include_base", action="store_false")
-    parser.add_argument("--limit", type=int, default=0,
-                        help="number of cases to run; 0 runs all")
+    parser.add_argument("--limit", type=int, default=0, help="number of cases to run; 0 runs all")
     parser.add_argument("--ids", nargs="*", default=None)
     parser.add_argument("--domains", nargs="*", default=None)
     parser.add_argument(
@@ -601,8 +576,7 @@ def main() -> int:
     )
     parser.add_argument("--output", default="data/exports/phase7_eval.json")
     parser.add_argument("--markdown", default=None)
-    parser.add_argument("--previous", default=None,
-                        help="previous JSON result for a version comparison")
+    parser.add_argument("--previous", default=None, help="previous JSON result for a version comparison")
     parser.add_argument("--check-only", action="store_true")
     parser.add_argument(
         "--preflight-only",
@@ -651,10 +625,7 @@ def main() -> int:
     parser.add_argument(
         "--load-dotenv",
         action="store_true",
-        help=(
-            "load ./.env before building settings; without it only process "
-            "environment variables are read"
-        ),
+        help=("load ./.env before building settings; without it only process environment variables are read"),
     )
     args = parser.parse_args()
 
@@ -677,9 +648,7 @@ def main() -> int:
     if args.preset:
         print(f"preset: {args.preset} -> {len(selected)} cases")
 
-    partial_path = Path(args.output).with_name(
-        Path(args.output).stem + ".partial.jsonl"
-    )
+    partial_path = Path(args.output).with_name(Path(args.output).stem + ".partial.jsonl")
     resumed: list[dict] = []
     if args.resume and partial_path.exists():
         latest: dict[str, dict] = {}
@@ -713,13 +682,8 @@ def main() -> int:
         # The runtime treats settings.agent_max_seconds as a hard ceiling, so an
         # explicit eval budget has to be applied to this process's settings.
         # .env is never modified.
-        settings = settings.model_copy(
-            update={"agent_max_seconds": args.case_max_seconds}
-        )
-        print(
-            f"case budget: {args.case_max_seconds:g}s per case (explicit override; "
-            ".env unchanged)"
-        )
+        settings = settings.model_copy(update={"agent_max_seconds": args.case_max_seconds})
+        print(f"case budget: {args.case_max_seconds:g}s per case (explicit override; .env unchanged)")
     print(
         "dotenv: "
         + (
@@ -754,8 +718,7 @@ def main() -> int:
     _print_readiness(readiness)
     if args.max_model_calls <= 0:
         print(
-            "FAIL: --max-model-calls is required for a live run; the call budget "
-            "was not confirmed. real LLM calls: 0."
+            "FAIL: --max-model-calls is required for a live run; the call budget was not confirmed. real LLM calls: 0."
         )
         return 3
     if readiness.blocking:
@@ -768,9 +731,7 @@ def main() -> int:
         return 1
     budget = _BudgetedClient(client, args.max_model_calls)
 
-    engine = make_readonly_engine(
-        settings.application_database_url, settings.query_timeout_ms
-    )
+    engine = make_readonly_engine(settings.application_database_url, settings.query_timeout_ms)
     factory = sessionmaker(bind=engine, class_=Session, expire_on_commit=False)
     registry = ToolRegistry(
         AnalysisGateway(factory, settings),
@@ -781,9 +742,7 @@ def main() -> int:
 
     outcome: dict = {}
     print(
-        f"cases: {len(selected)} to run"
-        + (f", {len(resumed)} resumed" if resumed else "")
-        + " (real LLM, no fallback)"
+        f"cases: {len(selected)} to run" + (f", {len(resumed)} resumed" if resumed else "") + " (real LLM, no fallback)"
     )
 
     def run_case(case):
@@ -814,10 +773,7 @@ def main() -> int:
         engine.dispose()
 
     if budget.refused:
-        print(
-            "STOP: local model-call cap reached; "
-            f"refused {budget.refused} call(s) after {budget.sent} sent."
-        )
+        print(f"STOP: local model-call cap reached; refused {budget.refused} call(s) after {budget.sent} sent.")
 
     records = outcome["records"]
     not_executed = outcome["not_executed_cases"]
@@ -869,9 +825,7 @@ def main() -> int:
         "generated_at": summary["generated_at"],
         "summary": summary,
         "run": run_info,
-        "config": config_snapshot(
-            settings, selected_total, preset=args.preset, dotenv_loaded=args.load_dotenv
-        ),
+        "config": config_snapshot(settings, selected_total, preset=args.preset, dotenv_loaded=args.load_dotenv),
         "cost": _cost_block(summary, settings),
         "records": records,
     }
@@ -892,11 +846,7 @@ def main() -> int:
         markdown_path.write_text(render_markdown(payload), encoding="utf-8")
         print(f"markdown written to {markdown_path}")
 
-    ok = (
-        summary["overall"]["failed"] == 0
-        and stopped_reason is None
-        and len(records) == len(selected_total)
-    )
+    ok = summary["overall"]["failed"] == 0 and stopped_reason is None and len(records) == len(selected_total)
     return 0 if ok else 1
 
 

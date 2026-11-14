@@ -123,9 +123,7 @@ def test_invalid_json_raises_structured_error():
 
 
 def test_prompt_is_not_logged(caplog):
-    FakeHttpClient.responses.append(
-        _response(200, {"content": [{"type": "text", "text": '{"ok": true}'}]})
-    )
+    FakeHttpClient.responses.append(_response(200, {"content": [{"type": "text", "text": '{"ok": true}'}]}))
     AnthropicClient(_settings()).complete_json(system="s", prompt="secret prompt")
     assert "secret prompt" not in caplog.text
     assert "sk-test-secret" not in caplog.text
@@ -206,9 +204,7 @@ def test_tool_results_and_assistant_tool_calls_are_converted():
         {
             "role": "assistant",
             "content": "",
-            "tool_calls": [
-                {"id": "t1", "name": "query_metric", "arguments": {"metric": "sales_amount"}}
-            ],
+            "tool_calls": [{"id": "t1", "name": "query_metric", "arguments": {"metric": "sales_amount"}}],
         },
         {"role": "tool", "tool_call_id": "t1", "content": '{"status": "ok"}'},
     ]
@@ -227,9 +223,7 @@ def test_consecutive_tool_result_and_decision_prompt_are_merged():
         {
             "role": "assistant",
             "content": "",
-            "tool_calls": [
-                {"id": "t1", "name": "query_metric", "arguments": {"metric": "sales_amount"}}
-            ],
+            "tool_calls": [{"id": "t1", "name": "query_metric", "arguments": {"metric": "sales_amount"}}],
         },
         {"role": "tool", "tool_call_id": "t1", "content": '{"status": "ok"}'},
         {"role": "user", "content": "choose the next step"},
@@ -256,9 +250,7 @@ def test_truncated_json_is_reported_as_truncation_not_generic_error():
         )
     )
     with pytest.raises(LLMTruncated):
-        AnthropicClient(_settings()).complete_json(
-            system="s", prompt="p", max_tokens=64
-        )
+        AnthropicClient(_settings()).complete_json(system="s", prompt="p", max_tokens=64)
     assert FakeHttpClient.calls[0]["json"]["max_tokens"] == 64
 
 
@@ -287,13 +279,9 @@ def test_truncated_tool_response_is_flagged():
 
 
 def test_connection_failure_becomes_structured_unavailable_after_retries():
-    FakeHttpClient.responses.extend(
-        [httpx.ConnectError("connection refused")] * 3
-    )
+    FakeHttpClient.responses.extend([httpx.ConnectError("connection refused")] * 3)
     with pytest.raises(LLMUnavailable):
-        AnthropicClient(_settings(llm_max_retries=2)).complete_json(
-            system="s", prompt="p"
-        )
+        AnthropicClient(_settings(llm_max_retries=2)).complete_json(system="s", prompt="p")
     assert len(FakeHttpClient.calls) == 3
 
 

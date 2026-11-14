@@ -6,7 +6,7 @@ import uuid
 from datetime import datetime, timezone
 from typing import Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict
 from sqlalchemy import (
     Boolean,
     Column,
@@ -213,9 +213,7 @@ class ApprovalStore:
                 "with the setup role before starting the API with the runtime role"
             )
 
-    def ensure_for_report(
-        self, stored: StoredReport, *, requested_by: str
-    ) -> ApprovalRecord:
+    def ensure_for_report(self, stored: StoredReport, *, requested_by: str) -> ApprovalRecord:
         existing = self.get(stored.report_id, stored.version)
         if existing is not None:
             return existing
@@ -362,11 +360,7 @@ class ApprovalStore:
         offset = (max(1, page) - 1) * page_size
         with self.engine.connect() as connection:
             total = int(
-                connection.execute(
-                    select(func.count())
-                    .select_from(_APPROVALS)
-                    .where(*conditions)
-                ).scalar_one()
+                connection.execute(select(func.count()).select_from(_APPROVALS).where(*conditions)).scalar_one()
             )
             rows = connection.execute(
                 select(_APPROVALS)
@@ -448,23 +442,15 @@ class ApprovalStore:
                 raise ApprovalNotFound("no approval request for this report version")
             record = _row_to_record(row)
             if record.report_fingerprint != current_fingerprint:
-                raise ApprovalStale(
-                    "the report content no longer matches the approval request"
-                )
+                raise ApprovalStale("the report content no longer matches the approval request")
             if action in {"approve", "reject"} and actor == record.requested_by:
-                raise ApprovalSeparationViolation(
-                    "the report owner cannot approve or reject their own report"
-                )
+                raise ApprovalSeparationViolation("the report owner cannot approve or reject their own report")
             if record.state == target:
                 if record.decided_by == actor:
                     return record, True
-                raise InvalidApprovalTransition(
-                    f"approval is already {record.state}"
-                )
+                raise InvalidApprovalTransition(f"approval is already {record.state}")
             if record.state != "pending":
-                raise InvalidApprovalTransition(
-                    f"cannot {action} an approval in state {record.state!r}"
-                )
+                raise InvalidApprovalTransition(f"cannot {action} an approval in state {record.state!r}")
             now = _now()
             connection.execute(
                 update(_APPROVALS)
@@ -492,20 +478,14 @@ class ApprovalStore:
                 )
             )
             updated = connection.execute(
-                select(_APPROVALS).where(
-                    _APPROVALS.c.approval_id == record.approval_id
-                )
+                select(_APPROVALS).where(_APPROVALS.c.approval_id == record.approval_id)
             ).first()
         return _row_to_record(updated), False
 
     def delete_for_run(self, run_id: str) -> None:
         with self.engine.begin() as connection:
-            connection.execute(
-                delete(_APPROVAL_EVENTS).where(_APPROVAL_EVENTS.c.run_id == run_id)
-            )
-            connection.execute(
-                delete(_APPROVALS).where(_APPROVALS.c.run_id == run_id)
-            )
+            connection.execute(delete(_APPROVAL_EVENTS).where(_APPROVAL_EVENTS.c.run_id == run_id))
+            connection.execute(delete(_APPROVALS).where(_APPROVALS.c.run_id == run_id))
 
 
 __all__ = [

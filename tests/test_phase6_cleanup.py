@@ -8,14 +8,12 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
 
-import pytest
 from sqlalchemy import func, select, text
 
 from enterprise_business_agent.agent.checkpoint import CHECKPOINT_METADATA
 from enterprise_business_agent.api.run_store import (
     RUN_STORE_METADATA,
     PersistentRunStore,
-    create_run_store_schema,
 )
 from enterprise_business_agent.api.runtime_schema import create_runtime_schema
 from enterprise_business_agent.evidence.approval import APPROVAL_METADATA
@@ -54,15 +52,10 @@ def _run(
         question="清理测试",
         payload={"run_id": run_id, "status": status},
     )
-    stamp = (
-        datetime.now(timezone.utc) - timedelta(days=days_old)
-    ).isoformat(timespec="seconds")
+    stamp = (datetime.now(timezone.utc) - timedelta(days=days_old)).isoformat(timespec="seconds")
     with store.engine.begin() as connection:
         connection.execute(
-            text(
-                "UPDATE agent_runs SET created_at = :stamp, updated_at = :stamp "
-                "WHERE run_id = :run_id"
-            ),
+            text("UPDATE agent_runs SET created_at = :stamp, updated_at = :stamp WHERE run_id = :run_id"),
             {"stamp": stamp, "run_id": run_id},
         )
 
@@ -203,11 +196,7 @@ def _children(engine, run_id: str) -> None:
 def _count(engine, table, key: str, run_id: str) -> int:
     with engine.connect() as connection:
         return int(
-            connection.execute(
-                select(func.count())
-                .select_from(table)
-                .where(table.c[key] == run_id)
-            ).scalar_one()
+            connection.execute(select(func.count()).select_from(table).where(table.c[key] == run_id)).scalar_one()
         )
 
 
@@ -257,9 +246,7 @@ def test_cleanup_deletes_the_run_and_every_child_table(tmp_path):
             assert _count(store.engine, table, key, "run-clean") == 0, table.name
 
         with store.engine.connect() as connection:
-            event = connection.execute(
-                select(EVENTS.c.detail).where(EVENTS.c.event_type == "run_cleanup")
-            ).first()
+            event = connection.execute(select(EVENTS.c.detail).where(EVENTS.c.event_type == "run_cleanup")).first()
         assert event is not None
         assert '"run_count": 1' in event.detail
     finally:
@@ -288,9 +275,7 @@ def test_cleanup_dry_run_counts_without_deleting(tmp_path):
         assert _count(store.engine, EVIDENCE, "run_id", "run-dry") == 1
         with store.engine.connect() as connection:
             audit = connection.execute(
-                select(func.count()).select_from(EVENTS).where(
-                    EVENTS.c.event_type == "run_cleanup"
-                )
+                select(func.count()).select_from(EVENTS).where(EVENTS.c.event_type == "run_cleanup")
             ).scalar_one()
         assert int(audit) == 0
     finally:
@@ -301,9 +286,7 @@ def test_cleanup_protects_a_valid_lease_and_deletes_after_release(tmp_path):
     store = _store(tmp_path)
     try:
         _run(store, "run-active", status="running", days_old=100)
-        claim = store.acquire_claim(
-            "run-active", "worker-live", 120, allowed_statuses={"running"}
-        ).claim
+        claim = store.acquire_claim("run-active", "worker-live", 120, allowed_statuses={"running"}).claim
         assert claim is not None
         report = store.cleanup_runs(
             dry_run=False,

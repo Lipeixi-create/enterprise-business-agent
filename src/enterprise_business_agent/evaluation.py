@@ -102,9 +102,9 @@ def _check_analyze_value(response, check: dict[str, Any]) -> list[str]:
     except (KeyError, IndexError, TypeError) as exc:
         return [f"value: path {check.get('path')!r} not found ({type(exc).__name__})"]
     if "equals" in check:
-        return [] if str(observed) == str(check["equals"]) else [
-            f"value: expected {check['equals']!r}, got {observed!r}"
-        ]
+        return (
+            [] if str(observed) == str(check["equals"]) else [f"value: expected {check['equals']!r}, got {observed!r}"]
+        )
     try:
         numeric = float(observed)
     except (TypeError, ValueError):

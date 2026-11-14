@@ -46,26 +46,14 @@ def _seed_block(records: list[dict[str, Any]], source: str) -> dict[str, Any]:
     scored = [item for item in records if item.get("scored", True)]
     passed = [item for item in scored if item.get("passed")]
     completed = [item for item in scored if item.get("task_completed")]
-    failures = [
-        item
-        for item in scored
-        if str(item.get("status") or "") in PROVIDER_FAILURE_STATUSES
-    ]
-    budget_stops = [
-        item
-        for item in scored
-        if str(item.get("status") or "") in BUDGET_STOP_STATUSES
-    ]
+    failures = [item for item in scored if str(item.get("status") or "") in PROVIDER_FAILURE_STATUSES]
+    budget_stops = [item for item in scored if str(item.get("status") or "") in BUDGET_STOP_STATUSES]
     input_tokens = sum(int((item.get("llm_tokens") or {}).get("input") or 0) for item in scored)
     output_tokens = sum(int((item.get("llm_tokens") or {}).get("output") or 0) for item in scored)
     duration_ms = sum(float(item.get("duration_ms") or 0.0) for item in scored)
     model_calls = sum(int(item.get("model_calls") or 0) for item in scored)
     tool_calls = sum(int(item.get("tool_calls") or 0) for item in scored)
-    latencies = [
-        float(item.get("llm_latency_ms"))
-        for item in scored
-        if item.get("llm_latency_ms") is not None
-    ]
+    latencies = [float(item.get("llm_latency_ms")) for item in scored if item.get("llm_latency_ms") is not None]
     return {
         "source": source,
         "cases": len(records),
@@ -82,16 +70,10 @@ def _seed_block(records: list[dict[str, Any]], source: str) -> dict[str, Any]:
         "tool_calls": tool_calls,
         "input_tokens": input_tokens,
         "output_tokens": output_tokens,
-        "tokens_per_case": (
-            round((input_tokens + output_tokens) / len(scored), 1) if scored else None
-        ),
+        "tokens_per_case": (round((input_tokens + output_tokens) / len(scored), 1) if scored else None),
         "duration_seconds": round(duration_ms / 1000.0, 2),
-        "mean_case_seconds": (
-            round(duration_ms / 1000.0 / len(scored), 2) if scored else None
-        ),
-        "mean_llm_latency_ms": (
-            round(sum(latencies) / len(latencies), 1) if latencies else None
-        ),
+        "mean_case_seconds": (round(duration_ms / 1000.0 / len(scored), 2) if scored else None),
+        "mean_llm_latency_ms": (round(sum(latencies) / len(latencies), 1) if latencies else None),
     }
 
 
@@ -173,12 +155,7 @@ def render_markdown(payload: dict[str, Any]) -> str:
         for item in variation["different_cases"]:
             lines.append(f"- `{item['id']}`")
             for seed, sequence in item["sequences"].items():
-                rendered = (
-                    " -> ".join(
-                        _call_label(tool, arguments) for tool, arguments in sequence
-                    )
-                    or "(no tool call)"
-                )
+                rendered = " -> ".join(_call_label(tool, arguments) for tool, arguments in sequence) or "(no tool call)"
                 lines.append(f"  - seed {seed}: {rendered}")
         lines.append("")
     lines.append("Source files:")
@@ -225,10 +202,7 @@ def main() -> int:
         per_seed[seed] = records
         sources[seed] = str(paths)
 
-    seeds = {
-        str(seed): _seed_block(per_seed[seed], sources[seed])
-        for seed in sorted(per_seed)
-    }
+    seeds = {str(seed): _seed_block(per_seed[seed], sources[seed]) for seed in sorted(per_seed)}
     payload = {
         "generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "kind": "multi_seed_live_evaluation",

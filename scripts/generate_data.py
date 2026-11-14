@@ -2,11 +2,12 @@ from __future__ import annotations
 
 import argparse
 
+from sqlalchemy.orm import Session
+
+from enterprise_business_agent import models  # noqa: F401
 from enterprise_business_agent.config import get_settings
 from enterprise_business_agent.data_generator import generate_data
 from enterprise_business_agent.db import make_engine
-from enterprise_business_agent import models  # noqa: F401
-from sqlalchemy.orm import Session
 
 
 def main() -> None:

@@ -8,7 +8,15 @@ from sqlalchemy.orm import Session
 from enterprise_business_agent.analysis.comparison import ComparisonStatus, compare_qoq, compare_yoy
 from enterprise_business_agent.data_generator import generate_data
 from enterprise_business_agent.db import Base
-from enterprise_business_agent.models import FinanceMonthly, InventorySnapshot, MarketingFact, Product, PurchaseFact, Region, SalesFact
+from enterprise_business_agent.models import (
+    FinanceMonthly,
+    InventorySnapshot,
+    MarketingFact,
+    Product,
+    PurchaseFact,
+    Region,
+    SalesFact,
+)
 from enterprise_business_agent.quality import run_quality_checks
 
 CORE = ("P001", "P002", "P003")
@@ -45,7 +53,9 @@ def _inventory(session, region_code, product_codes, start, end):
         )
         .join(Region, InventorySnapshot.region_id == Region.id)
         .join(Product, InventorySnapshot.product_id == Product.id)
-        .where(Region.code == region_code, Product.code.in_(product_codes), InventorySnapshot.period.between(start, end))
+        .where(
+            Region.code == region_code, Product.code.in_(product_codes), InventorySnapshot.period.between(start, end)
+        )
     )
     demand, sold, stockout, days_weighted = session.execute(statement).one()
     demand = int(demand or 0)
@@ -118,7 +128,11 @@ def test_inventory_anomaly_precedes_stockout_and_sales_decline(dataset):
         baseline_inventory = _inventory(session, "EC", CORE, date(2024, month, 1), date(2024, month, 1))
         current_units, _ = _sales(session, "EC", CORE, date(2025, month, 1), date(2025, month, 1))
         baseline_units, _ = _sales(session, "EC", CORE, date(2024, month, 1), date(2024, month, 1))
-        if "inventory" not in first and baseline_inventory["inventory_days"] > 0 and current_inventory["inventory_days"] <= 0.75 * baseline_inventory["inventory_days"]:
+        if (
+            "inventory" not in first
+            and baseline_inventory["inventory_days"] > 0
+            and current_inventory["inventory_days"] <= 0.75 * baseline_inventory["inventory_days"]
+        ):
             first["inventory"] = date(2025, month, 1)
         if "stockout" not in first and current_inventory["stockout_rate"] >= 0.10:
             first["stockout"] = date(2025, month, 1)

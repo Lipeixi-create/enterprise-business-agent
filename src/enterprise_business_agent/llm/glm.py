@@ -8,11 +8,9 @@ import httpx
 
 from ..config import Settings
 from .client import (
-    LLMClient,
     LLMCallResult,
     LLMCancelled,
     LLMCircuitOpen,
-    LLMError,
     LLMInvalidResponse,
     LLMTimeout,
     LLMToolCall,
@@ -24,8 +22,8 @@ from .client import (
     _deadline_for,
     _extract_json,
     _mark_error,
-    _run_deadline_reached,
     _run_deadline_leaves_no_room,
+    _run_deadline_reached,
     is_truncated,
 )
 from .resilience import (
@@ -59,9 +57,7 @@ def _glm_tools(tools: list[dict[str, Any]]) -> list[dict[str, Any]]:
     return converted
 
 
-def _glm_messages(
-    system: str, messages: list[dict[str, Any]]
-) -> list[dict[str, Any]]:
+def _glm_messages(system: str, messages: list[dict[str, Any]]) -> list[dict[str, Any]]:
     converted: list[dict[str, Any]] = []
     if system:
         converted.append({"role": "system", "content": system})
@@ -100,9 +96,7 @@ def _glm_messages(
                 }
             )
             continue
-        converted.append(
-            {"role": role or "user", "content": str(message.get("content") or "")}
-        )
+        converted.append({"role": role or "user", "content": str(message.get("content") or "")})
     return converted
 
 
@@ -265,9 +259,7 @@ class GLMClient:
                         attempts,
                     )
                     self._breaker.record_failure()
-                    retry_after = retry_after_seconds(
-                        response.headers, maximum=self._retry_after_max
-                    )
+                    retry_after = retry_after_seconds(response.headers, maximum=self._retry_after_max)
                 else:
                     detail = _provider_error(_safe_json(response))
                     message = f"GLM provider returned HTTP {response.status_code}"
@@ -280,17 +272,15 @@ class GLMClient:
                     )
             except TransportCancelled as exc:
                 raise LLMCancelled("GLM request was cancelled") from exc
-            except httpx.TimeoutException as exc:
+            except httpx.TimeoutException:
                 last_error = _mark_error(
                     LLMTimeout("GLM request timed out", kind=FAULT_TIMEOUT),
                     attempts,
                 )
                 self._breaker.record_failure()
-            except httpx.HTTPError as exc:
+            except httpx.HTTPError:
                 last_error = _mark_error(
-                    LLMUnavailable(
-                        "GLM provider is unreachable", kind=FAULT_CONNECTION
-                    ),
+                    LLMUnavailable("GLM provider is unreachable", kind=FAULT_CONNECTION),
                     attempts,
                 )
                 self._breaker.record_failure()
@@ -316,14 +306,10 @@ class GLMClient:
                 )
             time.sleep(delay)
 
-    def complete_json(
-        self, *, system: str, prompt: str, max_tokens: int | None = None
-    ) -> LLMCallResult:
+    def complete_json(self, *, system: str, prompt: str, max_tokens: int | None = None) -> LLMCallResult:
         payload = {
             "model": self.model,
-            "messages": _glm_messages(
-                system, [{"role": "user", "content": prompt}]
-            ),
+            "messages": _glm_messages(system, [{"role": "user", "content": prompt}]),
             "temperature": self._temperature,
             "max_tokens": max_tokens or self._max_tokens,
         }
@@ -339,8 +325,7 @@ class GLMClient:
         except LLMInvalidResponse as exc:
             if truncated:
                 raise LLMTruncated(
-                    "GLM response reached the output token cap before the JSON "
-                    "object was complete"
+                    "GLM response reached the output token cap before the JSON object was complete"
                 ) from exc
             raise
         input_tokens, output_tokens = _usage(body)
@@ -374,9 +359,7 @@ class GLMClient:
         if tools:
             payload["tools"] = _glm_tools(tools)
             payload["tool_choice"] = "auto"
-        body, latency, attempts = self._request(
-            payload, timeout_seconds=timeout_seconds
-        )
+        body, latency, attempts = self._request(payload, timeout_seconds=timeout_seconds)
         choice = _first_choice(body)
         message = choice.get("message") or {}
         text = message.get("content")
@@ -397,13 +380,9 @@ class GLMClient:
                 try:
                     arguments = json.loads(arguments)
                 except json.JSONDecodeError as exc:
-                    raise LLMInvalidResponse(
-                        "GLM tool_call arguments were not valid JSON"
-                    ) from exc
+                    raise LLMInvalidResponse("GLM tool_call arguments were not valid JSON") from exc
             if not isinstance(arguments, dict):
-                raise LLMInvalidResponse(
-                    "GLM tool_call arguments must decode to a JSON object"
-                )
+                raise LLMInvalidResponse("GLM tool_call arguments must decode to a JSON object")
             calls.append(LLMToolCall(str(call_id), str(name), arguments))
         if text is None and not calls:
             raise LLMInvalidResponse("GLM response contained no text or tool call")

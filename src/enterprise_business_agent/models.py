@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import date, datetime
 from decimal import Decimal
 
-from sqlalchemy import Boolean, Date, DateTime, ForeignKey, Integer, Numeric, String, UniqueConstraint, func
+from sqlalchemy import Date, DateTime, ForeignKey, Integer, Numeric, String, UniqueConstraint, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .db import Base
@@ -155,4 +155,3 @@ class HRMonthly(TimestampMixin, Base):
     turnover_count: Mapped[int] = mapped_column(Integer, nullable=False)
     turnover_rate: Mapped[Decimal] = mapped_column(RATE, nullable=False)
     labor_cost: Mapped[Decimal] = mapped_column(MONEY, nullable=False)
-

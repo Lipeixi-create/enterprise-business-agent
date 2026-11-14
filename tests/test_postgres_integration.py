@@ -9,9 +9,8 @@ from sqlalchemy.exc import DBAPIError
 from sqlalchemy.orm import Session, sessionmaker
 
 from enterprise_business_agent.agent import AnalysisGateway, ToolRegistry
-from enterprise_business_agent.analysis.contracts import PeriodComparisonRequest, TimeGrain
+from enterprise_business_agent.analysis.contracts import MetricQueryRequest, PeriodComparisonRequest, TimeGrain
 from enterprise_business_agent.analysis.engine import compare_periods, query_metric
-from enterprise_business_agent.analysis.contracts import MetricQueryRequest
 from enterprise_business_agent.config import Settings
 from enterprise_business_agent.data_generator import generate_data
 from enterprise_business_agent.db import Base, make_readonly_engine
@@ -21,9 +20,9 @@ from enterprise_business_agent.security import (
     GuardedQuery,
     Principal,
     QueryErrorCode,
-    SQLGuard,
     SafeQueryExecutor,
     SecureQueryService,
+    SQLGuard,
 )
 
 URL = os.getenv("EBA_TEST_POSTGRES_URL")
@@ -137,9 +136,7 @@ def test_independent_readonly_role_rejects_writes(postgres_session):
         with engine.connect() as connection:
             assert connection.execute(text("SELECT COUNT(*) FROM sales_fact")).scalar_one() > 0
             try:
-                connection.execute(
-                    text("INSERT INTO regions (code, name) VALUES ('ZZ', 'test')")
-                )
+                connection.execute(text("INSERT INTO regions (code, name) VALUES ('ZZ', 'test')"))
                 connection.commit()
                 raised = False
             except DBAPIError:

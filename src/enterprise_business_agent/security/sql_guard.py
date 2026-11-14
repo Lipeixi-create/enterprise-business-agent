@@ -9,11 +9,9 @@ import sqlglot
 from sqlglot import exp
 from sqlglot.errors import ParseError
 
-from .errors import GuardRejection, QueryErrorCode
-
 from .. import models  # noqa: F401 - registers SQLAlchemy metadata
 from ..db import Base
-
+from .errors import GuardRejection, QueryErrorCode
 
 _DIALECT_ALIASES = {
     "postgres": "postgres",
@@ -215,13 +213,10 @@ class SQLGuard:
         if allowed_tables is None:
             allowed_tables = set(Base.metadata.tables.keys())
         if allowed_columns is None:
-            allowed_columns = {
-                name: set(table.columns.keys()) for name, table in Base.metadata.tables.items()
-            }
+            allowed_columns = {name: set(table.columns.keys()) for name, table in Base.metadata.tables.items()}
         self.allowed_tables = {item.lower() for item in allowed_tables}
         self.allowed_columns = {
-            name.lower(): {column.lower() for column in columns}
-            for name, columns in allowed_columns.items()
+            name.lower(): {column.lower() for column in columns} for name, columns in allowed_columns.items()
         }
         self.max_rows = max_rows
         self.max_offset = max_offset
@@ -287,15 +282,9 @@ class SQLGuard:
         if isinstance(tree, exp.Select) and tree.args.get("into") is not None:
             self._reject(QueryErrorCode.FORBIDDEN_STATEMENT, "SELECT INTO is not allowed")
 
-        cte_names = {
-            str(cte.alias_or_name).lower()
-            for cte in tree.find_all(exp.CTE)
-            if cte.alias_or_name
-        }
+        cte_names = {str(cte.alias_or_name).lower() for cte in tree.find_all(exp.CTE) if cte.alias_or_name}
         cte_columns: dict[str, set[str]] = {
-            str(cte.alias_or_name).lower(): _cte_columns(cte)
-            for cte in tree.find_all(exp.CTE)
-            if cte.alias_or_name
+            str(cte.alias_or_name).lower(): _cte_columns(cte) for cte in tree.find_all(exp.CTE) if cte.alias_or_name
         }
 
         tables: set[str] = set()

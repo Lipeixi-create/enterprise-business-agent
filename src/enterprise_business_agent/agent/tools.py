@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 import contextvars
-import json
 import time
-from concurrent.futures import ThreadPoolExecutor, TimeoutError as FutureTimeout
+from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import TimeoutError as FutureTimeout
 from datetime import date
 from typing import Any, Callable, Protocol
 
@@ -200,13 +200,7 @@ def model_visible_data(
     source_table = data.get("source_table") or explain.get("source_table")
     dimension_keys: list[str] = []
     if name == "query_metric":
-        dimension_keys = sorted(
-            {
-                str(key)
-                for row in normalized_rows
-                for key in (row.get("dimensions") or {})
-            }
-        )
+        dimension_keys = sorted({str(key) for row in normalized_rows for key in (row.get("dimensions") or {})})
     elif name == "top_n" and data.get("dimension"):
         dimension_keys = [str(data["dimension"])]
 
@@ -264,14 +258,10 @@ def model_visible_data(
     return view
 
 
-
 class ToolResultCache(Protocol):
     """Durable completed-call cache used to make resume idempotent."""
 
-    def get_tool_result(
-        self, run_id: str, call_key: str
-    ) -> dict[str, Any] | None:
-        ...
+    def get_tool_result(self, run_id: str, call_key: str) -> dict[str, Any] | None: ...
 
     def put_tool_result(
         self,
@@ -282,8 +272,7 @@ class ToolResultCache(Protocol):
         call_id: str,
         status: str,
         result: dict[str, Any],
-    ) -> None:
-        ...
+    ) -> None: ...
 
 
 class EmptyArgs(ToolArgs):
@@ -340,12 +329,8 @@ class ComparisonArgs(ToolArgs):
     @model_validator(mode="after")
     def _check_period_arguments(self) -> "ComparisonArgs":
         if self.kind == "yoy_year" and self.quarter is not None:
-            raise ValueError(
-                "yoy_year 不接受 quarter；季度同比请使用 kind=yoy_quarter"
-            )
-        if self.kind in {"qoq", "yoy_quarter"} and (
-            self.year is None or self.quarter is None
-        ):
+            raise ValueError("yoy_year 不接受 quarter；季度同比请使用 kind=yoy_quarter")
+        if self.kind in {"qoq", "yoy_quarter"} and (self.year is None or self.quarter is None):
             raise ValueError(f"{self.kind} 需要同时提供 year 和 quarter")
         return self
 
@@ -374,9 +359,7 @@ class ContributionArgs(ToolArgs):
         if self.baseline_end < self.baseline_start:
             raise ValueError("baseline_end 不能早于 baseline_start")
         if self.baseline_end >= self.current_start:
-            raise ValueError(
-                "基准期与当前期重叠：baseline_end 必须早于 current_start"
-            )
+            raise ValueError("基准期与当前期重叠：baseline_end 必须早于 current_start")
         return self
 
 
@@ -555,9 +538,7 @@ class AnalysisGateway:
                 ),
             )
         shown = result.items[:MODEL_VISIBLE_ROW_LIMIT]
-        names = "；".join(
-            f"{item.dimension_value}={item.value}" for item in shown
-        )
+        names = "；".join(f"{item.dimension_value}={item.value}" for item in shown)
         if len(result.items) > len(shown):
             names += f"；另有 {len(result.items) - len(shown)} 条未展示"
         return self._wrap(
@@ -588,9 +569,7 @@ class AnalysisGateway:
                 ),
             )
         shown = result.items[:MODEL_VISIBLE_ROW_LIMIT]
-        names = "；".join(
-            f"{item.dimension_value}={item.contribution}" for item in shown
-        )
+        names = "；".join(f"{item.dimension_value}={item.contribution}" for item in shown)
         if len(result.items) > len(shown):
             names += f"；另有 {len(result.items) - len(shown)} 条未展示"
         return self._wrap(
@@ -598,9 +577,7 @@ class AnalysisGateway:
             metric=args.metric,
             start=args.current_start,
             end=args.current_end,
-            baseline_period=(
-                f"{args.baseline_start:%Y-%m}..{args.baseline_end:%Y-%m}"
-            ),
+            baseline_period=(f"{args.baseline_start:%Y-%m}..{args.baseline_end:%Y-%m}"),
             baseline_start=args.baseline_start,
             baseline_end=args.baseline_end,
             filters=args.filters,
@@ -660,29 +637,16 @@ class AnalysisGateway:
         if not result.points:
             return f"{result.label}没有返回数据。"
         if all(point.value is None for point in result.points):
-            return (
-                f"{result.label}返回 {len(result.points)} 个数据点，"
-                "但所有数值均不可计算。"
-            )
+            return f"{result.label}返回 {len(result.points)} 个数据点，但所有数值均不可计算。"
         first = result.points[0]
         last = result.points[-1]
 
         def value_text(value) -> str:
             return "不可计算" if value is None else str(value)
 
-        dimension_keys = sorted(
-            {
-                key
-                for point in result.points
-                for key in (getattr(point, "dimensions", None) or {})
-            }
-        )
+        dimension_keys = sorted({key for point in result.points for key in (getattr(point, "dimensions", None) or {})})
         if dimension_keys:
-            scope = (
-                first.period
-                if first.period == last.period
-                else f"{first.period} 至 {last.period}"
-            )
+            scope = first.period if first.period == last.period else f"{first.period} 至 {last.period}"
             detail = f"首条值 {value_text(first.value)}"
             if len(result.points) > 1:
                 detail += f"，末条值 {value_text(last.value)}"
@@ -796,11 +760,7 @@ def _evidence_from_result(
         missing.append("time_range_start")
     if end is None:
         missing.append("time_range_end")
-    has_baseline = (
-        baseline_period is not None
-        or baseline_start is not None
-        or baseline_end is not None
-    )
+    has_baseline = baseline_period is not None or baseline_start is not None or baseline_end is not None
     if has_baseline:
         if baseline_period is None:
             missing.append("baseline_period")
@@ -902,8 +862,7 @@ def build_default_tools() -> list[ToolDefinition]:
         ToolDefinition(
             name="trend",
             description=(
-                "分析指标在时间范围内的趋势方向。"
-                "用户问逐月/逐季趋势、走势或上升下降时使用；不要用 query_metric 代替。"
+                "分析指标在时间范围内的趋势方向。用户问逐月/逐季趋势、走势或上升下降时使用；不要用 query_metric 代替。"
             ),
             args_model=TrendArgs,
             handler=lambda gateway, args: gateway.trend(args),
@@ -973,9 +932,7 @@ class ToolRegistry:
         return [
             self._enrich_spec(definition.spec(), principal)
             for definition in self._definitions.values()
-            if self.authorization.tool_allowed(
-                principal, definition.name, definition.required_scope
-            )
+            if self.authorization.tool_allowed(principal, definition.name, definition.required_scope)
         ]
 
     def context(self, principal: Principal) -> str:
@@ -999,17 +956,12 @@ class ToolRegistry:
         metric_lines = []
         for metric in metrics:
             dimensions = ", ".join(metric.dimensions) or "none"
-            metric_lines.append(
-                f"- {metric.name} ({metric.label}, domain={metric.domain}, "
-                f"dimensions={dimensions})"
-            )
+            metric_lines.append(f"- {metric.name} ({metric.label}, domain={metric.domain}, dimensions={dimensions})")
         regions = []
         region_dimension = self.gateway.dimension_registry.get("region")
         if region_dimension is not None:
             regions = [
-                f"{item.get('code')}={item.get('label')}"
-                for item in region_dimension.values
-                if item.get("code")
+                f"{item.get('code')}={item.get('label')}" for item in region_dimension.values if item.get("code")
             ]
         return (
             "可用 canonical 指标（metric 参数必须使用左侧英文名）：\n"
@@ -1025,9 +977,7 @@ class ToolRegistry:
             + "\n只引用工具返回的原始数值；不要自行换算百分比或做二次计算。"
         )
 
-    def _enrich_spec(
-        self, spec: dict[str, Any], principal: Principal
-    ) -> dict[str, Any]:
+    def _enrich_spec(self, spec: dict[str, Any], principal: Principal) -> dict[str, Any]:
         metric_names = [
             metric.name
             for metric in self.gateway.metric_resolver.metrics
@@ -1038,9 +988,7 @@ class ToolRegistry:
                 source=metric.source_table,
             )
         ]
-        dimension_names = [
-            item.name for item in self.gateway.dimension_registry.dimensions
-        ]
+        dimension_names = [item.name for item in self.gateway.dimension_registry.dimensions]
         schema = spec.get("input_schema")
         if isinstance(schema, dict):
             _set_property_enum(schema, "metric", metric_names)
@@ -1059,9 +1007,7 @@ class ToolRegistry:
             _set_property_enum(schema, "grain", ["month", "quarter", "year", "total"])
         return spec
 
-    def authorize_call(
-        self, name: str, arguments: dict[str, Any], principal: Principal
-    ) -> ToolResult | None:
+    def authorize_call(self, name: str, arguments: dict[str, Any], principal: Principal) -> ToolResult | None:
         """Return an authorization failure without executing the tool.
 
         A resumed run may replay a cached tool result. The cache is keyed by
@@ -1077,38 +1023,44 @@ class ToolRegistry:
     ) -> tuple[ToolDefinition | None, BaseModel | None, ToolResult | None]:
         definition = self._definitions.get(name)
         if definition is None:
-            return None, None, ToolResult(
-                status="invalid_action",
-                error=ToolErrorInfo(code="unknown_tool", message=f"tool {name!r} is not registered"),
+            return (
+                None,
+                None,
+                ToolResult(
+                    status="invalid_action",
+                    error=ToolErrorInfo(code="unknown_tool", message=f"tool {name!r} is not registered"),
+                ),
             )
         try:
             self.authorization.require_tool(principal, definition.required_scope, name)
         except AuthorizationError as exc:
-            return definition, None, ToolResult(
-                status="permission_denied",
-                error=ToolErrorInfo(code="permission_denied", message=str(exc)),
+            return (
+                definition,
+                None,
+                ToolResult(
+                    status="permission_denied",
+                    error=ToolErrorInfo(code="permission_denied", message=str(exc)),
+                ),
             )
         try:
             args = definition.args_model.model_validate(arguments)
         except ValidationError as exc:
-            return definition, None, ToolResult(
-                status="invalid_arguments",
-                error=ToolErrorInfo(
-                    code="invalid_arguments",
-                    message="tool arguments do not match the schema",
-                    retryable=False,
+            return (
+                definition,
+                None,
+                ToolResult(
+                    status="invalid_arguments",
+                    error=ToolErrorInfo(
+                        code="invalid_arguments",
+                        message="tool arguments do not match the schema",
+                        retryable=False,
+                    ),
+                    data={"validation_errors": exc.errors(include_url=False, include_context=False)},
                 ),
-                data={
-                    "validation_errors": exc.errors(
-                        include_url=False, include_context=False
-                    )
-                },
             )
 
         metric = getattr(args, "metric", None)
-        metric_definition = (
-            self.gateway.metric_resolver.get(metric) if metric is not None else None
-        )
+        metric_definition = self.gateway.metric_resolver.get(metric) if metric is not None else None
         metric_domain = getattr(metric_definition, "domain", None)
         metric_source = getattr(metric_definition, "source_table", None)
         try:
@@ -1133,9 +1085,13 @@ class ToolRegistry:
                     source=metric_source,
                 )
         except AuthorizationError as exc:
-            return definition, None, ToolResult(
-                status="permission_denied",
-                error=ToolErrorInfo(code="permission_denied", message=str(exc)),
+            return (
+                definition,
+                None,
+                ToolResult(
+                    status="permission_denied",
+                    error=ToolErrorInfo(code="permission_denied", message=str(exc)),
+                ),
             )
         return definition, args, None
 
@@ -1179,9 +1135,7 @@ class ToolRegistry:
             evidence.tool_call_id = call_id
         return result
 
-    def _run_with_retries(
-        self, definition: ToolDefinition, args: BaseModel, seconds: float
-    ) -> ToolResult:
+    def _run_with_retries(self, definition: ToolDefinition, args: BaseModel, seconds: float) -> ToolResult:
         # Every tool is read-only, so retrying a timeout/execution error is safe.
         attempts = self.settings.agent_tool_max_retries + 1
         result: ToolResult | None = None
@@ -1219,9 +1173,7 @@ class ToolRegistry:
                 status="database_unavailable",
                 error=ToolErrorInfo(
                     code="database_unavailable",
-                    message=(
-                        f"{type(exc).__name__}: database temporarily unavailable"
-                    ),
+                    message=(f"{type(exc).__name__}: database temporarily unavailable"),
                     retryable=True,
                 ),
             )

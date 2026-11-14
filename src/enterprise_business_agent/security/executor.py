@@ -19,7 +19,6 @@ from .errors import ExecutionFailure, QueryErrorCode
 from .semantic_guard import TrustedSelect
 from .sql_guard import GuardedQuery, SQLGuard
 
-
 _READ_ONLY_PREFIX = re.compile(r"(?is)^\s*(select|with)\b")
 
 
@@ -105,9 +104,7 @@ class SafeQueryExecutor:
             tables=tuple(guarded.tables),
             dialect=guarded.dialect,
             limit=guarded.limit,
-            runner=lambda connection: connection.execute(
-                text(guarded.sql), guarded.params
-            ),
+            runner=lambda connection: connection.execute(text(guarded.sql), guarded.params),
         )
 
     def execute_select(self, trusted: TrustedSelect) -> QueryExecutionResult:
@@ -129,9 +126,7 @@ class SafeQueryExecutor:
             tables=tuple(trusted.tables),
             dialect=trusted.dialect,
             limit=self.max_rows,
-            runner=lambda connection: connection.execute(
-                trusted.statement, trusted.params
-            ),
+            runner=lambda connection: connection.execute(trusted.statement, trusted.params),
         )
 
     def _execute(
@@ -197,10 +192,7 @@ class SafeQueryExecutor:
                     columns = [str(item) for item in result.keys()]
                     fetched = result.mappings().fetchmany(self.max_rows + 1)
                     truncated = len(fetched) > self.max_rows
-                    rows = [
-                        {key: _json_value(value) for key, value in row.items()}
-                        for row in fetched[: self.max_rows]
-                    ]
+                    rows = [{key: _json_value(value) for key, value in row.items()} for row in fetched[: self.max_rows]]
                 finally:
                     if self._is_sqlite:
                         self._clear_sqlite_progress(connection)

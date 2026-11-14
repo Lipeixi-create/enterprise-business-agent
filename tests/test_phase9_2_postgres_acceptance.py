@@ -124,9 +124,7 @@ def run_store(admin_engine):
 def _client(settings, business_engine, run_store, llm=None):
     app = create_app(
         settings,
-        session_factory=sessionmaker(
-            bind=business_engine, class_=Session, expire_on_commit=False
-        ),
+        session_factory=sessionmaker(bind=business_engine, class_=Session, expire_on_commit=False),
         engine=business_engine,
         llm_client=llm or ScriptedLLM([finish_response("已完成。")]),
         result_store=ResultStore(),
@@ -142,14 +140,10 @@ def _query(client, key: str, **overrides):
         "end": "2025-03-01",
         **overrides,
     }
-    return client.post(
-        "/api/v1/metrics/query", headers={"X-API-Key": key}, json=payload
-    )
+    return client.post("/api/v1/metrics/query", headers={"X-API-Key": key}, json=payload)
 
 
-def test_postgres_region_scope_and_department_isolation(
-    settings, business_engine, run_store
-):
+def test_postgres_region_scope_and_department_isolation(settings, business_engine, run_store):
     with _client(settings, business_engine, run_store) as client:
         omitted = _query(client, "restricted-key", dimensions=["region"])
         assert omitted.status_code == 403
@@ -197,24 +191,18 @@ def test_postgres_cross_user_run_isolation(settings, business_engine, run_store)
         assert owner.status_code == 200
 
         for key in ("analyst-b", "restricted-key"):
-            denied = client.get(
-                f"/api/v1/agent/runs/{run_id}", headers={"X-API-Key": key}
-            )
+            denied = client.get(f"/api/v1/agent/runs/{run_id}", headers={"X-API-Key": key})
             assert denied.status_code in {403, 404}, denied.text
             assert denied.json()["error"]["code"] in {
                 "forbidden",
                 "agent_run_not_found",
             }
 
-        admin = client.get(
-            f"/api/v1/agent/runs/{run_id}", headers={"X-API-Key": "admin-key"}
-        )
+        admin = client.get(f"/api/v1/agent/runs/{run_id}", headers={"X-API-Key": "admin-key"})
         assert admin.status_code == 200
 
 
-def test_postgres_concurrent_idempotency_creates_one_run(
-    settings, business_engine, run_store
-):
+def test_postgres_concurrent_idempotency_creates_one_run(settings, business_engine, run_store):
     with _client(settings, business_engine, run_store) as client:
         barrier = threading.Barrier(4)
 
@@ -234,9 +222,7 @@ def test_postgres_concurrent_idempotency_creates_one_run(
         assert len({run_id for _, run_id in results}) == 1
 
 
-def test_postgres_restart_marks_unfinished_run_interrupted(
-    settings, business_engine, run_store
-):
+def test_postgres_restart_marks_unfinished_run_interrupted(settings, business_engine, run_store):
     principal_id = authenticate(settings, "analyst-a").principal_id
     run_store.put(
         "run-pg-restart",
@@ -258,16 +244,10 @@ def test_postgres_restart_marks_unfinished_run_interrupted(
         with _client(settings, business_engine, restarted) as client:
             history = client.get("/api/v1/agent/runs?limit=50", headers=AUTH_A)
             assert history.status_code == 200, history.text
-            item = next(
-                row
-                for row in history.json()["items"]
-                if row["run_id"] == "run-pg-restart"
-            )
+            item = next(row for row in history.json()["items"] if row["run_id"] == "run-pg-restart")
             assert item["status"] == "interrupted"
 
-            run = client.get(
-                "/api/v1/agent/runs/run-pg-restart", headers=AUTH_A
-            )
+            run = client.get("/api/v1/agent/runs/run-pg-restart", headers=AUTH_A)
             assert run.status_code == 200
             assert run.json()["status"] == "interrupted"
             assert run.json()["stop_reason"] == "process_restart"
@@ -279,22 +259,14 @@ def test_postgres_connection_privilege_failure_is_not_silently_degraded(admin_en
     runtime_role = _role(RUNTIME_URL)
     database = make_url(URL).database
     with admin_engine.begin() as connection:
-        connection.execute(
-            text(f'REVOKE CONNECT ON DATABASE "{database}" FROM PUBLIC')
-        )
-        connection.execute(
-            text(f'REVOKE CONNECT ON DATABASE "{database}" FROM "{runtime_role}"')
-        )
+        connection.execute(text(f'REVOKE CONNECT ON DATABASE "{database}" FROM PUBLIC'))
+        connection.execute(text(f'REVOKE CONNECT ON DATABASE "{database}" FROM "{runtime_role}"'))
     try:
         with pytest.raises(OperationalError):
             PersistentRunStore(RUNTIME_URL)
     finally:
         with admin_engine.begin() as connection:
-            connection.execute(
-                text(f'GRANT CONNECT ON DATABASE "{database}" TO "{runtime_role}"')
-            )
-            connection.execute(
-                text(f'GRANT CONNECT ON DATABASE "{database}" TO PUBLIC')
-            )
+            connection.execute(text(f'GRANT CONNECT ON DATABASE "{database}" TO "{runtime_role}"'))
+            connection.execute(text(f'GRANT CONNECT ON DATABASE "{database}" TO PUBLIC'))
     recovered = PersistentRunStore(RUNTIME_URL)
     recovered.close()

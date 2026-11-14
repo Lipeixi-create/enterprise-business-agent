@@ -171,9 +171,7 @@ def test_scripted_planner_scores_all_dimensions(eval_env):
     runtime = AgentRuntime(llm_client=None, registry=registry, settings=settings)
     runtime.llm = ScriptedPlanLLM(case.required_calls)
 
-    result = run_live_agent_case(
-        case, runtime=runtime, registry=registry, principal=PRINCIPAL
-    )
+    result = run_live_agent_case(case, runtime=runtime, registry=registry, principal=PRINCIPAL)
 
     assert result.tool_selection_correct is True
     assert result.tool_argument_correct is True
@@ -194,15 +192,11 @@ def test_scripted_planner_scores_all_dimensions(eval_env):
 
 def test_unauthorized_case_is_scored_without_a_real_model(eval_env):
     settings, registry = eval_env
-    case = next(
-        item for item in load_live_agent_cases(PHASE7) if item.id == "phase7-057"
-    )
+    case = next(item for item in load_live_agent_cases(PHASE7) if item.id == "phase7-057")
     runtime = AgentRuntime(llm_client=None, registry=registry, settings=settings)
     runtime.llm = _RefusingPlannerLLM(case.required_calls)
 
-    result = run_live_agent_case(
-        case, runtime=runtime, registry=registry, principal=PRINCIPAL
-    )
+    result = run_live_agent_case(case, runtime=runtime, registry=registry, principal=PRINCIPAL)
 
     assert result.refusal_correct is True
     assert result.safety_intercepted is True
@@ -218,15 +212,11 @@ def test_unauthorized_case_is_scored_without_a_real_model(eval_env):
 
 def test_injection_case_blocks_forbidden_tools(eval_env):
     settings, registry = eval_env
-    case = next(
-        item for item in load_live_agent_cases(PHASE7) if item.id == "phase7-060"
-    )
+    case = next(item for item in load_live_agent_cases(PHASE7) if item.id == "phase7-060")
     runtime = AgentRuntime(llm_client=None, registry=registry, settings=settings)
     runtime.llm = _RefusingPlannerLLM()
 
-    result = run_live_agent_case(
-        case, runtime=runtime, registry=registry, principal=PRINCIPAL
-    )
+    result = run_live_agent_case(case, runtime=runtime, registry=registry, principal=PRINCIPAL)
 
     assert result.tool_selection_correct is True
     assert result.refusal_correct is True
@@ -237,22 +227,46 @@ def test_injection_case_blocks_forbidden_tools(eval_env):
 def test_summary_reports_rates_per_domain_and_failures():
     records = [
         {
-            "id": "a1", "domain": "Sales", "category": "metric_query", "scored": True,
-            "passed": True, "tool_selection_correct": True, "tool_argument_correct": True,
-            "query_correct": True, "task_completed": True, "evidence_sufficient": True,
-            "conclusion_overreach": False, "number_accuracy": True,
-            "narrative_complete": True, "numeric_validation_passed": True,
-            "finding_citation_correct": True, "duration_ms": 100.0,
-            "llm_latency_ms": 80.0, "model_calls": 2, "llm_tokens": {"input": 10, "output": 5},
+            "id": "a1",
+            "domain": "Sales",
+            "category": "metric_query",
+            "scored": True,
+            "passed": True,
+            "tool_selection_correct": True,
+            "tool_argument_correct": True,
+            "query_correct": True,
+            "task_completed": True,
+            "evidence_sufficient": True,
+            "conclusion_overreach": False,
+            "number_accuracy": True,
+            "narrative_complete": True,
+            "numeric_validation_passed": True,
+            "finding_citation_correct": True,
+            "duration_ms": 100.0,
+            "llm_latency_ms": 80.0,
+            "model_calls": 2,
+            "llm_tokens": {"input": 10, "output": 5},
         },
         {
-            "id": "a2", "domain": "Sales", "category": "top_n", "scored": True,
-            "passed": False, "tool_selection_correct": False, "tool_argument_correct": True,
-            "query_correct": False, "task_completed": True, "evidence_sufficient": True,
-            "conclusion_overreach": False, "number_accuracy": None,
-            "narrative_complete": True, "numeric_validation_passed": True,
-            "finding_citation_correct": True, "duration_ms": 300.0,
-            "llm_latency_ms": 250.0, "model_calls": 3, "llm_tokens": {"input": 20, "output": 8},
+            "id": "a2",
+            "domain": "Sales",
+            "category": "top_n",
+            "scored": True,
+            "passed": False,
+            "tool_selection_correct": False,
+            "tool_argument_correct": True,
+            "query_correct": False,
+            "task_completed": True,
+            "evidence_sufficient": True,
+            "conclusion_overreach": False,
+            "number_accuracy": None,
+            "narrative_complete": True,
+            "numeric_validation_passed": True,
+            "finding_citation_correct": True,
+            "duration_ms": 300.0,
+            "llm_latency_ms": 250.0,
+            "model_calls": 3,
+            "llm_tokens": {"input": 20, "output": 8},
         },
     ]
     summary = summarize_live_results(records, previous={"overall": {"pass_rate": 1.0}})
@@ -341,18 +355,14 @@ class _ScriptedThenAnswer:
 
 
 def _case(case_id: str):
-    return next(
-        item for item in load_live_agent_cases(PHASE7) if item.id == case_id
-    )
+    return next(item for item in load_live_agent_cases(PHASE7) if item.id == case_id)
 
 
 def _run(case, llm, eval_env, principal=PRINCIPAL):
     settings, registry = eval_env
     runtime = AgentRuntime(llm_client=None, registry=registry, settings=settings)
     runtime.llm = llm
-    return run_live_agent_case(
-        case, runtime=runtime, registry=registry, principal=principal
-    )
+    return run_live_agent_case(case, runtime=runtime, registry=registry, principal=principal)
 
 
 def test_number_match_requires_the_named_metric():
@@ -409,7 +419,6 @@ def test_rate_in_a_following_sentence_inherits_the_metric():
     )
 
     assert _number_matches(answer, "-0.224068", terms=["毛利率"])
-
 
 
 def test_number_match_handles_units_percentages_and_tolerance():
@@ -505,10 +514,7 @@ def test_truncated_warning_is_detected():
 
 def test_invalid_citation_marker_fails_the_answer(eval_env):
     case = _case("phase7-001")
-    answer = (
-        "2025年12月华北销售额为 22,224,049.54 元，数据来自销售额指标查询 [E99]，"
-        "该编号并不对应任何已记录的证据。"
-    )
+    answer = "2025年12月华北销售额为 22,224,049.54 元，数据来自销售额指标查询 [E99]，该编号并不对应任何已记录的证据。"
     result = _run(case, _ScriptedThenAnswer(case.required_calls, answer), eval_env)
 
     assert result.number_accuracy is True
@@ -525,16 +531,13 @@ def test_provenance_flags_numbers_no_tool_returned():
 
 
 def test_non_numeric_canonical_value_skips_number_accuracy(eval_env):
-    case = next(
-        item for item in load_live_agent_cases(BASE) if item.id == "live-014"
-    )
+    case = next(item for item in load_live_agent_cases(BASE) if item.id == "live-014")
     assert case.query_check.equals == "volatile"
     forced = case.model_copy(update={"expect_number": True})
     result = _run(forced, ScriptedPlanLLM(case.required_calls), eval_env)
     # A direction string cannot be compared with a number: not applicable, not false.
     assert result.number_accuracy is None
     assert "number_accuracy" not in result.failure_reasons
-
 
 
 # --- Phase 7.3 regressions: evaluator attribution and archive trace ---------
@@ -554,18 +557,11 @@ def test_markdown_table_rows_inherit_the_header_metric():
     for value in ("108", "54", "53", "28", "14"):
         assert _number_matches(table, value, terms=["人数"])
     # A header naming another metric must not lend its term to these rows.
-    assert not _number_matches(
-        table.replace("期末人数", "库存天数"), "28", terms=["人数"]
-    )
+    assert not _number_matches(table.replace("期末人数", "库存天数"), "28", terms=["人数"])
 
 
 def test_two_metric_table_requires_the_matching_column():
-    table = (
-        "| 部门 | 期末人数 | 销售额 |\n"
-        "|---|---|---|\n"
-        "| SALES | 108 | 5000 |\n"
-        "| FINANCE | 28 | 9000 |\n"
-    )
+    table = "| 部门 | 期末人数 | 销售额 |\n|---|---|---|\n| SALES | 108 | 5000 |\n| FINANCE | 28 | 9000 |\n"
     assert _number_matches(table, "28", terms=["人数"])
     assert _number_matches(table, "9000", terms=["销售额"])
     # Swapped columns must still fail: the term alone is not enough.
@@ -577,37 +573,21 @@ def test_two_metric_table_requires_the_matching_column():
 
 
 def test_number_match_binds_values_across_clause_boundaries():
-    summary = (
-        "库存天数返回 8 个数据点（2025-12~2025-12），按 product 拆分；"
-        "首条值 26.713990，末条值 0.000000。"
-    )
+    summary = "库存天数返回 8 个数据点（2025-12~2025-12），按 product 拆分；首条值 26.713990，末条值 0.000000。"
     assert _number_matches(summary, "26.713990", terms=["库存天数"])
     assert _number_matches(summary, "0.000000", terms=["库存天数"])
-    assert _number_matches(
-        "Inventory days: P001=3; P002=5", "5", terms=["Inventory days"]
-    )
+    assert _number_matches("Inventory days: P001=3; P002=5", "5", terms=["Inventory days"])
     assert _number_matches("库存天数 P001=3，P002=5", "5", terms=["库存天数"])
-    assert _number_matches(
-        "库存天数：\n- 华北 3 天\n- 华南 5 天", "5", terms=["库存天数"]
-    )
-    assert _number_matches(
-        "库存天数：\nP001 3\nP002 5", "5", terms=["库存天数"]
-    )
+    assert _number_matches("库存天数：\n- 华北 3 天\n- 华南 5 天", "5", terms=["库存天数"])
+    assert _number_matches("库存天数：\nP001 3\nP002 5", "5", terms=["库存天数"])
     assert _number_matches(
         "销售额变化：2025-12 79,916,777.45；变化率 -0.358549。",
         "-0.358549",
         terms=["销售额"],
     )
-    table = (
-        "| 产品 | 库存天数 |\n"
-        "|---|---|\n"
-        "| P001 | 26.713990 |\n"
-        "| P002 | 0.000000 |\n"
-    )
+    table = "| 产品 | 库存天数 |\n|---|---|\n| P001 | 26.713990 |\n| P002 | 0.000000 |\n"
     assert _number_matches(table, "26.713990", terms=["库存天数"])
-    assert not _number_matches(
-        table.replace("库存天数", "净利润"), "26.713990", terms=["库存天数"]
-    )
+    assert not _number_matches(table.replace("库存天数", "净利润"), "26.713990", terms=["库存天数"])
 
 
 def test_clause_level_matching_still_rejects_wrong_attribution():
@@ -622,22 +602,16 @@ def test_clause_level_matching_still_rejects_wrong_attribution():
         "18129454.19",
         terms=["净利润"],
     )
-    assert not _number_matches(
-        "库存天数 P001=3；净利润 P002=5", "5", terms=["库存天数"]
-    )
+    assert not _number_matches("库存天数 P001=3；净利润 P002=5", "5", terms=["库存天数"])
     assert not _number_matches(
         "库存天数：\n- 华北 1000000 天\n- 净利润 18129454.19 元",
         "18129454.19",
         terms=["库存天数"],
     )
     # A number with no supporting metric anywhere still fails.
-    assert not _number_matches(
-        "查询已完成；模型规模为 26.713990。", "26.713990", terms=["库存天数"]
-    )
+    assert not _number_matches("查询已完成；模型规模为 26.713990。", "26.713990", terms=["库存天数"])
     # The tolerance is unchanged: 27.5 is not 26.713990.
-    assert not _number_matches(
-        "库存天数为 27.5 天。", "26.713990", terms=["库存天数"]
-    )
+    assert not _number_matches("库存天数为 27.5 天。", "26.713990", terms=["库存天数"])
 
 
 def test_number_accuracy_uses_the_clause_level_binding(eval_env):
@@ -719,9 +693,7 @@ def test_derived_difference_from_evidence_is_still_an_answer_number():
     # The difference of two returned figures is verifiable, not an invention.
     assert AgentRuntime._unverified_numbers(derived, state) == []
     # A number that no arithmetic on the evidence can produce is still flagged.
-    assert AgentRuntime._unverified_numbers("P003 与 P002 相差 0.009999。", state) == [
-        "0.009999"
-    ]
+    assert AgentRuntime._unverified_numbers("P003 与 P002 相差 0.009999。", state) == ["0.009999"]
 
 
 def test_trend_finding_no_longer_exposes_the_internal_rule():
@@ -881,9 +853,7 @@ def test_live_result_archives_runtime_observability(eval_env):
     # used for scoring; only the six real executions count.
     assert len([item for item in result.tool_call_trace if not item["blocked"]]) == 1
 
-    blocked_decisions = [
-        item for item in result.decisions if item["action"] == "call_tool_blocked"
-    ]
+    blocked_decisions = [item for item in result.decisions if item["action"] == "call_tool_blocked"]
     assert len(blocked_decisions) == 1
     decision = blocked_decisions[0]
     assert decision["blocked_reason"]
@@ -917,26 +887,19 @@ def test_live_timeout_archives_the_budget_stop_reason(eval_env):
 def test_runner_maps_status_to_the_budget_termination_reason():
     import importlib.util
 
-    spec = importlib.util.spec_from_file_location(
-        "run_phase7_evals", ROOT / "scripts" / "run_phase7_evals.py"
-    )
+    spec = importlib.util.spec_from_file_location("run_phase7_evals", ROOT / "scripts" / "run_phase7_evals.py")
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
 
     assert module._budget_stop_reason("llm_timeout") == "case_time_budget_exhausted"
     assert module._budget_stop_reason("timeout") == "case_time_budget_exhausted"
-    assert (
-        module._budget_stop_reason("budget_exhausted")
-        == "model_or_token_budget_exhausted"
-    )
+    assert module._budget_stop_reason("budget_exhausted") == "model_or_token_budget_exhausted"
     assert module._budget_stop_reason("completed") is None
 
 
 def _chain_records():
     evidence = SimpleNamespace(evidence_id="e1", run_id="run-1", tool_call_id="c1")
-    finding = SimpleNamespace(
-        finding_id="F1", run_id="run-1", evidence_ids=["e1"]
-    )
+    finding = SimpleNamespace(finding_id="F1", run_id="run-1", evidence_ids=["e1"])
     message = {
         "run_id": "run-1",
         "case_id": "phase7-001",

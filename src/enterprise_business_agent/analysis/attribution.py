@@ -63,10 +63,7 @@ def build_attribution(result: ContributionResponse) -> AttributionResult:
     if result.residual not in (None, 0, Decimal("0")):
         tolerance = abs(result.total_change or Decimal("0")) * Decimal("0.01")
         if abs(result.residual) > tolerance:
-            checks.append(
-                "贡献合计与总变化存在残差 "
-                f"{result.residual}，维度成员可能不完整"
-            )
+            checks.append(f"贡献合计与总变化存在残差 {result.residual}，维度成员可能不完整")
         else:
             checks.append("贡献合计与总变化在 1% 容差内一致")
 

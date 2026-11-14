@@ -87,9 +87,7 @@ def test_domain_and_resource_restrictions_block_metrics(env):
         )
     )
     registry = _registry(env, policy)
-    restricted = Principal(
-        "key:restricted", "restricted_analyst", frozenset({"metrics:read", "agent:run"})
-    )
+    restricted = Principal("key:restricted", "restricted_analyst", frozenset({"metrics:read", "agent:run"}))
 
     allowed = registry.execute(
         "query_metric",
@@ -174,8 +172,7 @@ def test_untrusted_tool_output_cannot_grant_new_permissions(env):
         AnalysisGateway(factory, settings),
         policy,
         settings,
-        definitions=[injected_tool]
-        + [item for item in build_default_tools() if item.name != "list_metrics"],
+        definitions=[injected_tool] + [item for item in build_default_tools() if item.name != "list_metrics"],
     )
     llm = ScriptedLLM(
         [
@@ -187,12 +184,8 @@ def test_untrusted_tool_output_cannot_grant_new_permissions(env):
             ),
         ]
     )
-    restricted = Principal(
-        "key:restricted", "restricted_analyst", frozenset({"metrics:read", "agent:run"})
-    )
-    result = AgentRuntime(llm_client=llm, registry=registry, settings=settings).run(
-        "查看营销投入", restricted
-    )
+    restricted = Principal("key:restricted", "restricted_analyst", frozenset({"metrics:read", "agent:run"}))
+    result = AgentRuntime(llm_client=llm, registry=registry, settings=settings).run("查看营销投入", restricted)
 
     assert result.status == AgentStatus.INVALID_ACTION
     assert result.stop_reason == "permission_denied"
@@ -218,9 +211,7 @@ def test_region_restricted_role_cannot_group_by_region(env):
         )
     )
     registry = _registry(env, policy)
-    restricted = Principal(
-        "key:restricted", "restricted_analyst", frozenset({"metrics:read", "agent:run"})
-    )
+    restricted = Principal("key:restricted", "restricted_analyst", frozenset({"metrics:read", "agent:run"}))
 
     result = registry.execute(
         "top_n",
@@ -251,9 +242,9 @@ def test_trace_events_are_structured_and_redacted(env):
             finish_response("已完成查询。"),
         ]
     )
-    result = AgentRuntime(
-        llm_client=llm, registry=_registry(env), settings=settings
-    ).run("查询销售额", ANALYST, trace_sink=events.append)
+    result = AgentRuntime(llm_client=llm, registry=_registry(env), settings=settings).run(
+        "查询销售额", ANALYST, trace_sink=events.append
+    )
 
     event_types = [event["event_type"] for event in events]
     assert event_types == [

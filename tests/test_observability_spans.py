@@ -2,15 +2,12 @@ from __future__ import annotations
 
 from datetime import date
 
-import pytest
-
 from enterprise_business_agent.agent import AgentRuntime, AgentStatus
 from enterprise_business_agent.config import Settings
 from enterprise_business_agent.observability import spans as spans_module
 from enterprise_business_agent.observability.spans import SpanSink
 from enterprise_business_agent.security import Principal
 from tests.agent_fakes import ScriptedLLM, finish_response
-
 
 ANALYST = Principal("key:test", "analyst", frozenset({"metrics:read", "agent:run"}))
 
@@ -65,9 +62,7 @@ class FakeTracer:
 
 def _use_tracer(monkeypatch, tracer):
     FakeTraceModule.tracer = tracer
-    monkeypatch.setattr(
-        spans_module, "_load_trace_module", lambda: FakeTraceModule
-    )
+    monkeypatch.setattr(spans_module, "_load_trace_module", lambda: FakeTraceModule)
     return tracer
 
 

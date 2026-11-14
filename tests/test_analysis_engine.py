@@ -213,9 +213,7 @@ def test_contribution_rejects_non_additive_metric(fixed_dataset):
 
 
 def test_trend_identifies_growth(fixed_dataset):
-    result = _engine(fixed_dataset).analyze_trend(
-        TrendRequest(metric="revenue", start="2024-01-01", end="2024-04-30")
-    )
+    result = _engine(fixed_dataset).analyze_trend(TrendRequest(metric="revenue", start="2024-01-01", end="2024-04-30"))
     assert result.status == AnalysisStatus.OK
     assert result.direction == "growth"
     assert len(result.points) == 4

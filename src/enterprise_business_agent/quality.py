@@ -8,8 +8,18 @@ from sqlalchemy import func, inspect, select, text
 from sqlalchemy.orm import Session
 
 from .models import (
-    Base, Campaign, Channel, Department, FinanceMonthly, HRMonthly, InventorySnapshot, MarketingFact,
-    Product, PurchaseFact, Region, SalesFact, Supplier,
+    Campaign,
+    Channel,
+    Department,
+    FinanceMonthly,
+    HRMonthly,
+    InventorySnapshot,
+    MarketingFact,
+    Product,
+    PurchaseFact,
+    Region,
+    SalesFact,
+    Supplier,
 )
 from .schemas import DataQualityReport, EventAssertion
 
@@ -18,9 +28,25 @@ DIM_MODELS = (Region, Channel, Supplier, Product, Campaign, Department)
 NUMERIC_FIELDS = {
     SalesFact: ("units", "sales_amount", "discount_amount", "cogs_amount"),
     MarketingFact: ("spend", "impressions", "clicks", "conversions", "attributed_revenue"),
-    FinanceMonthly: ("revenue", "cogs_amount", "operating_expense", "marketing_spend", "labor_cost", "budget_amount", "actual_amount"),
+    FinanceMonthly: (
+        "revenue",
+        "cogs_amount",
+        "operating_expense",
+        "marketing_spend",
+        "labor_cost",
+        "budget_amount",
+        "actual_amount",
+    ),
     PurchaseFact: ("purchase_qty", "unit_cost", "purchase_amount"),
-    InventorySnapshot: ("inventory_qty", "demand_units", "units_sold", "inventory_days", "stockout_units", "stockout_rate", "fulfillment_rate"),
+    InventorySnapshot: (
+        "inventory_qty",
+        "demand_units",
+        "units_sold",
+        "inventory_days",
+        "stockout_units",
+        "stockout_rate",
+        "fulfillment_rate",
+    ),
     HRMonthly: ("headcount", "hires", "turnover_count", "turnover_rate", "labor_cost"),
 }
 EAST = "EC"
@@ -34,7 +60,10 @@ def _as_float(value):
 
 
 def _expected_periods(start: date, months: int) -> set[date]:
-    return {date(start.year + (start.month - 1 + index) // 12, (start.month - 1 + index) % 12 + 1, 1) for index in range(months)}
+    return {
+        date(start.year + (start.month - 1 + index) // 12, (start.month - 1 + index) % 12 + 1, 1)
+        for index in range(months)
+    }
 
 
 def _close(left: float, right: float, absolute: float = 5.0, relative: float = 0.001) -> bool:
@@ -99,7 +128,9 @@ def _event_assertions(session: Session) -> list[EventAssertion]:
             "fulfillment_rate": sold / demand if demand else 0.0,
         }
 
-    def assertion(name: str, passed: bool, detail: str, observed: dict[str, float | int | str | None]) -> EventAssertion:
+    def assertion(
+        name: str, passed: bool, detail: str, observed: dict[str, float | int | str | None]
+    ) -> EventAssertion:
         return EventAssertion(name=name, passed=passed, detail=detail, observed=observed)
 
     q4_2024 = (date(2024, 10, 1), date(2024, 12, 31))
@@ -119,31 +150,50 @@ def _event_assertions(session: Session) -> list[EventAssertion]:
             "east_core_sales_decline",
             east_sales_change is not None and east_sales_change <= -0.10,
             "2025Q4 华东核心商品销售额相对 2024Q4 显著下降",
-            {"sales_2024q4": round(east_2024["amount"], 2), "sales_2025q4": round(east_2025["amount"], 2), "change_rate": None if east_sales_change is None else round(east_sales_change, 6)},
+            {
+                "sales_2024q4": round(east_2024["amount"], 2),
+                "sales_2025q4": round(east_2025["amount"], 2),
+                "change_rate": None if east_sales_change is None else round(east_sales_change, 6),
+            },
         ),
         assertion(
             "east_core_units_decline",
             east_units_change is not None and east_units_change <= -0.10,
             "2025Q4 华东核心商品销量相对 2024Q4 显著下降",
-            {"units_2024q4": east_2024["units"], "units_2025q4": east_2025["units"], "change_rate": None if east_units_change is None else round(east_units_change, 6)},
+            {
+                "units_2024q4": east_2024["units"],
+                "units_2025q4": east_2025["units"],
+                "change_rate": None if east_units_change is None else round(east_units_change, 6),
+            },
         ),
         assertion(
             "east_core_inventory_days_drop",
             east_inventory_change is not None and east_inventory_change <= -0.40 and east_2025["inventory_days"] < 15,
             "2025Q4 华东核心商品库存天数相对 2024Q4 显著下降",
-            {"inventory_days_2024q4": round(east_2024["inventory_days"], 3), "inventory_days_2025q4": round(east_2025["inventory_days"], 3), "change_rate": None if east_inventory_change is None else round(east_inventory_change, 6)},
+            {
+                "inventory_days_2024q4": round(east_2024["inventory_days"], 3),
+                "inventory_days_2025q4": round(east_2025["inventory_days"], 3),
+                "change_rate": None if east_inventory_change is None else round(east_inventory_change, 6),
+            },
         ),
         assertion(
             "east_core_stockout_rate_rise",
             east_2025["stockout_rate"] >= 0.20 and east_2025["stockout_rate"] >= east_2024["stockout_rate"] + 0.15,
             "2025Q4 华东核心商品缺货率显著上升",
-            {"stockout_rate_2024q4": round(east_2024["stockout_rate"], 6), "stockout_rate_2025q4": round(east_2025["stockout_rate"], 6)},
+            {
+                "stockout_rate_2024q4": round(east_2024["stockout_rate"], 6),
+                "stockout_rate_2025q4": round(east_2025["stockout_rate"], 6),
+            },
         ),
         assertion(
             "east_core_fulfillment_rate_drop",
-            east_2025["fulfillment_rate"] <= 0.80 and east_2025["fulfillment_rate"] <= east_2024["fulfillment_rate"] - 0.10,
+            east_2025["fulfillment_rate"] <= 0.80
+            and east_2025["fulfillment_rate"] <= east_2024["fulfillment_rate"] - 0.10,
             "2025Q4 华东核心商品需求满足率显著下降",
-            {"fulfillment_rate_2024q4": round(east_2024["fulfillment_rate"], 6), "fulfillment_rate_2025q4": round(east_2025["fulfillment_rate"], 6)},
+            {
+                "fulfillment_rate_2024q4": round(east_2024["fulfillment_rate"], 6),
+                "fulfillment_rate_2025q4": round(east_2025["fulfillment_rate"], 6),
+            },
         ),
         assertion(
             "regional_contrast",
@@ -205,9 +255,7 @@ def _event_assertions(session: Session) -> list[EventAssertion]:
     results.append(
         assertion(
             "overstock_risk_products",
-            overstock_change is not None
-            and overstock_change >= 0.50
-            and overstock_2025["inventory_days"] >= 50,
+            overstock_change is not None and overstock_change >= 0.50 and overstock_2025["inventory_days"] >= 50,
             "P004/P005 在 2025Q4 出现库存积压，库存天数显著高于 2024Q4",
             {
                 "inventory_days_2024q4": round(overstock_2024["inventory_days"], 3),
@@ -272,8 +320,7 @@ def _event_assertions(session: Session) -> list[EventAssertion]:
     results.append(
         assertion(
             "budget_overrun_q4",
-            finance_2024["actual"] <= finance_2024["budget"]
-            and finance_2025["actual"] > finance_2025["budget"],
+            finance_2024["actual"] <= finance_2024["budget"] and finance_2025["actual"] > finance_2025["budget"],
             "2024Q4 实际费用低于预算，2025Q4 转为超预算",
             {
                 "variance_2024q4": round(finance_2024["actual"] - finance_2024["budget"], 2),
@@ -325,8 +372,7 @@ def _event_assertions(session: Session) -> list[EventAssertion]:
     missing_purchase = [key for key in inventory if key not in purchase_keys]
     unit_mismatch = sum(1 for key, row in inventory.items() if sales.get(key, [0])[0] != row.units_sold)
     arithmetic_mismatch = sum(
-        1 for row in inventory.values()
-        if row.demand_units != row.units_sold + row.stockout_units
+        1 for row in inventory.values() if row.demand_units != row.units_sold + row.stockout_units
     )
     results.append(
         assertion(
@@ -345,7 +391,9 @@ def _event_assertions(session: Session) -> list[EventAssertion]:
     return results
 
 
-def run_quality_checks(session: Session, expected_start: date = date(2024, 1, 1), expected_months: int = 24) -> DataQualityReport:
+def run_quality_checks(
+    session: Session, expected_start: date = date(2024, 1, 1), expected_months: int = 24
+) -> DataQualityReport:
     checks: list[str] = []
     errors: list[str] = []
     row_counts: dict[str, int] = {}
@@ -380,10 +428,19 @@ def run_quality_checks(session: Session, expected_start: date = date(2024, 1, 1)
     checks.append(f"all monthly fact periods cover the continuous {expected_months}-month range")
 
     fk_checks = [
-        (SalesFact, "region_id", Region), (SalesFact, "channel_id", Channel), (SalesFact, "product_id", Product),
-        (MarketingFact, "campaign_id", Campaign), (MarketingFact, "region_id", Region), (MarketingFact, "channel_id", Channel),
-        (FinanceMonthly, "region_id", Region), (PurchaseFact, "supplier_id", Supplier), (PurchaseFact, "product_id", Product), (PurchaseFact, "region_id", Region),
-        (InventorySnapshot, "region_id", Region), (InventorySnapshot, "product_id", Product), (InventorySnapshot, "supplier_id", Supplier),
+        (SalesFact, "region_id", Region),
+        (SalesFact, "channel_id", Channel),
+        (SalesFact, "product_id", Product),
+        (MarketingFact, "campaign_id", Campaign),
+        (MarketingFact, "region_id", Region),
+        (MarketingFact, "channel_id", Channel),
+        (FinanceMonthly, "region_id", Region),
+        (PurchaseFact, "supplier_id", Supplier),
+        (PurchaseFact, "product_id", Product),
+        (PurchaseFact, "region_id", Region),
+        (InventorySnapshot, "region_id", Region),
+        (InventorySnapshot, "product_id", Product),
+        (InventorySnapshot, "supplier_id", Supplier),
         (HRMonthly, "department_id", Department),
     ]
     for child, fk, parent in fk_checks:
@@ -401,7 +458,10 @@ def run_quality_checks(session: Session, expected_start: date = date(2024, 1, 1)
             continue
         expected_fulfillment = row.units_sold / row.demand_units if row.demand_units else 0.0
         expected_stockout = row.stockout_units / row.demand_units if row.demand_units else 0.0
-        if abs(float(row.fulfillment_rate) - expected_fulfillment) > 1e-6 or abs(float(row.stockout_rate) - expected_stockout) > 1e-6:
+        if (
+            abs(float(row.fulfillment_rate) - expected_fulfillment) > 1e-6
+            or abs(float(row.stockout_rate) - expected_stockout) > 1e-6
+        ):
             inventory_errors += 1
     if inventory_errors:
         errors.append(f"inventory_snapshot: {inventory_errors} rows violate demand/stockout/fulfillment identities")
@@ -412,8 +472,7 @@ def run_quality_checks(session: Session, expected_start: date = date(2024, 1, 1)
     ):
         sales_units[(period, region_id, product_id)] += units
     unit_mismatch = sum(
-        1 for row in inventory_rows
-        if sales_units[(row.period, row.region_id, row.product_id)] != row.units_sold
+        1 for row in inventory_rows if sales_units[(row.period, row.region_id, row.product_id)] != row.units_sold
     )
     if unit_mismatch:
         errors.append(f"inventory_snapshot: {unit_mismatch} rows do not match sales_fact units")
@@ -447,13 +506,17 @@ def run_quality_checks(session: Session, expected_start: date = date(2024, 1, 1)
         if not _close(finance_labor[period], hr_labor[period]):
             reconciliation_errors += 1
     if reconciliation_errors:
-        errors.append(f"finance_monthly: {reconciliation_errors} rows do not reconcile with sales, marketing or HR facts")
+        errors.append(
+            f"finance_monthly: {reconciliation_errors} rows do not reconcile with sales, marketing or HR facts"
+        )
     checks.append("finance revenue/cogs/marketing/labor reconcile with source facts")
 
     sales_total = session.scalar(select(text("COALESCE(SUM(sales_amount), 0)")).select_from(SalesFact)) or 0
     cogs_total = session.scalar(select(text("COALESCE(SUM(cogs_amount), 0)")).select_from(SalesFact)) or 0
     marketing_spend = session.scalar(select(text("COALESCE(SUM(spend), 0)")).select_from(MarketingFact)) or 0
-    campaign_revenue = session.scalar(select(text("COALESCE(SUM(attributed_revenue), 0)")).select_from(MarketingFact)) or 0
+    campaign_revenue = (
+        session.scalar(select(text("COALESCE(SUM(attributed_revenue), 0)")).select_from(MarketingFact)) or 0
+    )
     if sales_total <= 0 or cogs_total <= 0:
         errors.append("gross_profit: sales or cogs is not positive")
     if marketing_spend <= 0 or campaign_revenue <= 0:

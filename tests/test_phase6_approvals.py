@@ -33,7 +33,6 @@ from enterprise_business_agent.evidence.contracts import (
 from enterprise_business_agent.evidence.report import ReportStore
 from tests.agent_fakes import ScriptedLLM, finish_response, tool_response
 
-
 OWNER = "key:owner"
 APPROVER = "key:approver"
 
@@ -290,9 +289,7 @@ def api_env(tmp_path):
         generate_data(seed, date(2024, 1, 1), 24, reset=False)
         seed.commit()
     write_engine.dispose()
-    engine = make_readonly_engine(
-        f"sqlite:///{db_path}", settings.query_timeout_ms
-    )
+    engine = make_readonly_engine(f"sqlite:///{db_path}", settings.query_timeout_ms)
     factory = sessionmaker(bind=engine, class_=Session, expire_on_commit=False)
     run_store = PersistentRunStore(f"sqlite:///{tmp_path / 'runs.db'}")
     yield {"settings": settings, "factory": factory, "engine": engine, "run_store": run_store}
@@ -500,10 +497,13 @@ def test_api_manager_with_decide_scope_still_cannot_approve_own_report(api_env):
         )
         assert response.status_code == 403
         assert response.json()["error"]["code"] == "approval_separation_violation"
-        assert client.get(
-            f"/api/v1/agent/runs/{run_id}/report/approval",
-            headers=MANAGER_AUTH,
-        ).json()["state"] == "pending"
+        assert (
+            client.get(
+                f"/api/v1/agent/runs/{run_id}/report/approval",
+                headers=MANAGER_AUTH,
+            ).json()["state"]
+            == "pending"
+        )
 
 
 def test_api_owner_can_cancel_own_pending_approval(api_env):
@@ -537,6 +537,4 @@ def test_api_owner_can_cancel_own_pending_approval(api_env):
             },
         )
         assert approve_after_cancel.status_code == 409
-        assert approve_after_cancel.json()["error"]["code"] == (
-            "invalid_approval_transition"
-        )
+        assert approve_after_cancel.json()["error"]["code"] == ("invalid_approval_transition")

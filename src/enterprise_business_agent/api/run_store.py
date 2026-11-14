@@ -46,9 +46,7 @@ def _now_precise() -> str:
 
 
 def _iso_at(seconds: float) -> str:
-    return (
-        datetime.now(timezone.utc) + timedelta(seconds=max(0.0, seconds))
-    ).isoformat(timespec="microseconds")
+    return (datetime.now(timezone.utc) + timedelta(seconds=max(0.0, seconds))).isoformat(timespec="microseconds")
 
 
 @dataclass(frozen=True)
@@ -88,9 +86,7 @@ class RunStoreConnectionErrorCounter:
 
     def __call__(self, exception_context: Any) -> None:
         error = getattr(exception_context, "original_exception", None)
-        if isinstance(error, OperationalError) or getattr(
-            exception_context, "is_disconnect", False
-        ):
+        if isinstance(error, OperationalError) or getattr(exception_context, "is_disconnect", False):
             self.count += 1
 
 
@@ -174,13 +170,10 @@ def ensure_run_store_columns(engine) -> list[str]:
         for name, ddl in _BATCH3_RUN_COLUMNS.items():
             if name in existing:
                 continue
-            connection.exec_driver_sql(
-                f"ALTER TABLE agent_runs ADD COLUMN {name} {ddl}"
-            )
+            connection.exec_driver_sql(f"ALTER TABLE agent_runs ADD COLUMN {name} {ddl}")
             added.append(name)
         connection.exec_driver_sql(
-            "CREATE INDEX IF NOT EXISTS ix_agent_runs_active_lease "
-            "ON agent_runs (status, lease_expires_at)"
+            "CREATE INDEX IF NOT EXISTS ix_agent_runs_active_lease ON agent_runs (status, lease_expires_at)"
         )
     return added
 
@@ -229,9 +222,7 @@ class PersistentRunStore:
                 "application_name": "eba_run_store",
                 "connect_timeout": 5,
                 "options": (
-                    "-c statement_timeout=30000 "
-                    "-c lock_timeout=10000 "
-                    "-c idle_in_transaction_session_timeout=30000"
+                    "-c statement_timeout=30000 -c lock_timeout=10000 -c idle_in_transaction_session_timeout=30000"
                 ),
             }
         self.engine = create_engine(url, **kwargs)
@@ -313,9 +304,7 @@ class PersistentRunStore:
         now = _now()
         state = status or str(payload.get("status") or "unknown")
         with self._lock, self.engine.begin() as connection:
-            existing = connection.execute(
-                select(_RUNS.c.run_id).where(_RUNS.c.run_id == run_id)
-            ).first()
+            existing = connection.execute(select(_RUNS.c.run_id).where(_RUNS.c.run_id == run_id)).first()
             if existing is None:
                 if fence is not None:
                     raise RunClaimLost("cannot write a run that does not exist")
@@ -339,19 +328,13 @@ class PersistentRunStore:
                         _RUNS.c.claim_owner == fence.worker_id,
                         _RUNS.c.claim_version == fence.claim_version,
                     )
-                result = connection.execute(
-                    statement.values(status=state, updated_at=now, payload=document)
-                )
+                result = connection.execute(statement.values(status=state, updated_at=now, payload=document))
                 if fence is not None and not result.rowcount:
-                    raise RunClaimLost(
-                        f"worker {fence.worker_id!r} no longer owns run {run_id!r}"
-                    )
+                    raise RunClaimLost(f"worker {fence.worker_id!r} no longer owns run {run_id!r}")
 
     def get(self, run_id: str, owner: str | None = None) -> dict[str, Any] | None:
         with self._lock, self.engine.connect() as connection:
-            query = select(
-                _RUNS.c.payload, _RUNS.c.owner, _RUNS.c.status
-            ).where(_RUNS.c.run_id == run_id)
+            query = select(_RUNS.c.payload, _RUNS.c.owner, _RUNS.c.status).where(_RUNS.c.run_id == run_id)
             row = connection.execute(query).first()
         if row is None:
             return None
@@ -363,9 +346,7 @@ class PersistentRunStore:
 
     def owner_of(self, run_id: str) -> str | None:
         with self._lock, self.engine.connect() as connection:
-            row = connection.execute(
-                select(_RUNS.c.owner).where(_RUNS.c.run_id == run_id)
-            ).first()
+            row = connection.execute(select(_RUNS.c.owner).where(_RUNS.c.run_id == run_id)).first()
         return None if row is None else row.owner
 
     def get_status(self, run_id: str, owner: str | None = None) -> str | None:
@@ -468,9 +449,7 @@ class PersistentRunStore:
         with self._lock, self.engine.begin() as connection:
             result = connection.execute(statement.values(**values))
         if fence is not None and not result.rowcount:
-            raise RunClaimLost(
-                f"worker {fence.worker_id!r} no longer owns run {run_id!r}"
-            )
+            raise RunClaimLost(f"worker {fence.worker_id!r} no longer owns run {run_id!r}")
         return bool(result.rowcount)
 
     def mark_interrupted(self) -> int:
@@ -555,9 +534,7 @@ class PersistentRunStore:
             )
             if result.rowcount:
                 row = connection.execute(
-                    select(
-                        _RUNS.c.claim_version, _RUNS.c.lease_expires_at
-                    ).where(_RUNS.c.run_id == run_id)
+                    select(_RUNS.c.claim_version, _RUNS.c.lease_expires_at).where(_RUNS.c.run_id == run_id)
                 ).first()
                 return ClaimAttempt(
                     RunClaim(
@@ -579,12 +556,8 @@ class PersistentRunStore:
         if row is None:
             return ClaimAttempt(None, "not_found")
         if row.lease_expires_at and row.lease_expires_at >= now:
-            return ClaimAttempt(
-                None, "lease_held", row.lease_expires_at, row.claim_owner
-            )
-        return ClaimAttempt(
-            None, "not_resumable", row.lease_expires_at, row.claim_owner
-        )
+            return ClaimAttempt(None, "lease_held", row.lease_expires_at, row.claim_owner)
+        return ClaimAttempt(None, "not_resumable", row.lease_expires_at, row.claim_owner)
 
     def renew_claim(self, claim: RunClaim, lease_seconds: float) -> bool:
         expires = _iso_at(lease_seconds)
@@ -662,9 +635,7 @@ class PersistentRunStore:
         """Accumulate one attempt's wall-clock time against the whole run."""
 
         now = _now_precise()
-        values: dict[str, Any] = {
-            "execution_seconds": _RUNS.c.execution_seconds + max(0.0, seconds)
-        }
+        values: dict[str, Any] = {"execution_seconds": _RUNS.c.execution_seconds + max(0.0, seconds)}
         if resumed:
             values["last_resumed_at"] = now
             values["resume_count"] = _RUNS.c.resume_count + 1
@@ -679,14 +650,8 @@ class PersistentRunStore:
                 .values(**values)
             )
             if not result.rowcount:
-                raise RunClaimLost(
-                    f"worker {claim.worker_id!r} no longer owns run {claim.run_id!r}"
-                )
-            row = connection.execute(
-                select(_RUNS.c.execution_seconds).where(
-                    _RUNS.c.run_id == claim.run_id
-                )
-            ).first()
+                raise RunClaimLost(f"worker {claim.worker_id!r} no longer owns run {claim.run_id!r}")
+            row = connection.execute(select(_RUNS.c.execution_seconds).where(_RUNS.c.run_id == claim.run_id)).first()
         return float(row.execution_seconds or 0.0)
 
     # -- tool idempotency ----------------------------------------------
@@ -701,9 +666,7 @@ class PersistentRunStore:
         ).first()
         return row is not None
 
-    def get_tool_result(
-        self, run_id: str, call_key: str
-    ) -> dict[str, Any] | None:
+    def get_tool_result(self, run_id: str, call_key: str) -> dict[str, Any] | None:
         """Return the completed result for a logical tool call, if any.
 
         ``call_key`` is derived from the tool name and canonical arguments, so
@@ -743,9 +706,7 @@ class PersistentRunStore:
         }
         with self._lock, self.engine.begin() as connection:
             if fence is not None and not self._owns(connection, fence):
-                raise RunClaimLost(
-                    f"worker {fence.worker_id!r} no longer owns run {run_id!r}"
-                )
+                raise RunClaimLost(f"worker {fence.worker_id!r} no longer owns run {run_id!r}")
             existing = connection.execute(
                 select(_TOOL_RESULTS.c.call_key).where(
                     _TOOL_RESULTS.c.run_id == run_id,
@@ -766,11 +727,7 @@ class PersistentRunStore:
 
     def count_tool_results(self, run_id: str) -> int:
         with self._lock, self.engine.connect() as connection:
-            rows = connection.execute(
-                select(_TOOL_RESULTS.c.call_key).where(
-                    _TOOL_RESULTS.c.run_id == run_id
-                )
-            ).all()
+            rows = connection.execute(select(_TOOL_RESULTS.c.call_key).where(_TOOL_RESULTS.c.run_id == run_id)).all()
         return len(rows)
 
     # -- audit / trace -------------------------------------------------
@@ -788,9 +745,7 @@ class PersistentRunStore:
         event_id = str(uuid.uuid4())
         with self._lock, self.engine.begin() as connection:
             if fence is not None and not self._owns(connection, fence):
-                raise RunClaimLost(
-                    f"worker {fence.worker_id!r} no longer owns run {fence.run_id!r}"
-                )
+                raise RunClaimLost(f"worker {fence.worker_id!r} no longer owns run {fence.run_id!r}")
             connection.execute(
                 _EVENTS.insert().values(
                     event_id=event_id,
@@ -805,18 +760,14 @@ class PersistentRunStore:
             )
         return event_id
 
-    def list_events(
-        self, run_id: str, owner: str | None = None
-    ) -> list[dict[str, Any]]:
+    def list_events(self, run_id: str, owner: str | None = None) -> list[dict[str, Any]]:
         if owner is not None:
             document = self.get(run_id, owner=owner)
             if document is None:
                 return []
         with self.engine.connect() as connection:
             rows = connection.execute(
-                select(_EVENTS)
-                .where(_EVENTS.c.run_id == run_id)
-                .order_by(_EVENTS.c.created_at, _EVENTS.c.event_id)
+                select(_EVENTS).where(_EVENTS.c.run_id == run_id).order_by(_EVENTS.c.created_at, _EVENTS.c.event_id)
             ).all()
         return [
             {
@@ -904,17 +855,12 @@ class PersistentRunStore:
         cutoffs: dict[str, str] = {}
         for status in ("completed", "failed", "cancelled", "unfinished"):
             seconds = float(retention_seconds.get(status, 0))
-            cutoffs[status] = (now - timedelta(seconds=max(0.0, seconds))).isoformat(
-                timespec="microseconds"
-            )
+            cutoffs[status] = (now - timedelta(seconds=max(0.0, seconds))).isoformat(timespec="microseconds")
 
         conditions = [
-            _RUNS.c.status.in_(_COMPLETED_STATUSES)
-            & (_RUNS.c.updated_at < cutoffs["completed"]),
-            _RUNS.c.status.in_(_FAILED_STATUSES)
-            & (_RUNS.c.updated_at < cutoffs["failed"]),
-            _RUNS.c.status.in_(_CANCELLED_STATUSES)
-            & (_RUNS.c.updated_at < cutoffs["cancelled"]),
+            _RUNS.c.status.in_(_COMPLETED_STATUSES) & (_RUNS.c.updated_at < cutoffs["completed"]),
+            _RUNS.c.status.in_(_FAILED_STATUSES) & (_RUNS.c.updated_at < cutoffs["failed"]),
+            _RUNS.c.status.in_(_CANCELLED_STATUSES) & (_RUNS.c.updated_at < cutoffs["cancelled"]),
             _RUNS.c.status.in_(_UNFINISHED_STATUSES)
             & (_RUNS.c.created_at < cutoffs["unfinished"])
             & or_(
@@ -1001,9 +947,7 @@ class PersistentRunStore:
             ("agent_tool_results", _TOOL_RESULTS, "run_id"),
         ]
         inspector = inspect(self.engine)
-        return [
-            item for item in candidates if inspector.has_table(item[0])
-        ]
+        return [item for item in candidates if inspector.has_table(item[0])]
 
     def _count_children(self, connection, ids: list[str]) -> dict[str, int]:
         counts: dict[str, int] = {"agent_runs": len(ids)}
@@ -1011,11 +955,7 @@ class PersistentRunStore:
             return counts
         for name, table, key in self._child_tables():
             counts[name] = int(
-                connection.execute(
-                    select(func.count())
-                    .select_from(table)
-                    .where(table.c[key].in_(ids))
-                ).scalar_one()
+                connection.execute(select(func.count()).select_from(table).where(table.c[key].in_(ids))).scalar_one()
             )
         return counts
 
@@ -1129,17 +1069,13 @@ class PersistentRunStore:
                 if not inspector.has_table(table.name):
                     continue
                 counts[name] = int(
-                    connection.execute(
-                        select(func.count()).select_from(table).where(condition)
-                    ).scalar_one()
+                    connection.execute(select(func.count()).select_from(table).where(condition)).scalar_one()
                 )
                 if counts[name]:
                     key = table.c.run_id if "run_id" in table.c else table.c.thread_id
                     samples[name] = [
                         str(value)
-                        for value in connection.execute(
-                            select(key).where(condition).limit(sample_limit)
-                        ).scalars()
+                        for value in connection.execute(select(key).where(condition).limit(sample_limit)).scalars()
                     ]
         return {
             "counts": counts,

@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import json
-
 import httpx
 import pytest
 
@@ -87,9 +85,7 @@ def test_post_is_bounded_by_wall_clock_deadline(monkeypatch):
             threading.Event().wait(0.5)
             raise AssertionError("response arrived after the deadline")
 
-    monkeypatch.setattr(
-        "enterprise_business_agent.llm.glm.httpx.Client", TricklingClient
-    )
+    monkeypatch.setattr("enterprise_business_agent.llm.glm.httpx.Client", TricklingClient)
     client = GLMClient(_settings())
     started = real_time.monotonic()
     with pytest.raises(httpx.ReadTimeout):
@@ -194,9 +190,7 @@ def test_glm_rejects_invalid_json_arguments():
         )
     )
     with pytest.raises(LLMInvalidResponse):
-        GLMClient(_settings()).complete_with_tools(
-            system="s", messages=[{"role": "user", "content": "q"}], tools=[]
-        )
+        GLMClient(_settings()).complete_with_tools(system="s", messages=[{"role": "user", "content": "q"}], tools=[])
 
 
 def test_glm_401_is_not_retried_and_key_is_redacted():
@@ -204,9 +198,7 @@ def test_glm_401_is_not_retried_and_key_is_redacted():
     client = GLMClient(_settings())
     assert "test-glm-secret" not in repr(client)
     with pytest.raises(LLMUnavailable):
-        client.complete_with_tools(
-            system="s", messages=[{"role": "user", "content": "q"}], tools=[]
-        )
+        client.complete_with_tools(system="s", messages=[{"role": "user", "content": "q"}], tools=[])
     assert len(FakeHttpClient.calls) == 1
 
 
@@ -216,11 +208,7 @@ def test_glm_429_is_retried_then_succeeds():
             _response(429, {}),
             _response(
                 200,
-                {
-                    "choices": [
-                        {"message": {"content": "ok"}, "finish_reason": "stop"}
-                    ]
-                },
+                {"choices": [{"message": {"content": "ok"}, "finish_reason": "stop"}]},
             ),
         ]
     )
@@ -250,7 +238,7 @@ def test_glm_complete_json_parses_fenced_json():
                 "model": "glm-5.3-flash",
                 "choices": [
                     {
-                        "message": {"content": "```json\n{\"ok\": true}\n```"},
+                        "message": {"content": '```json\n{"ok": true}\n```'},
                         "finish_reason": "stop",
                     }
                 ],
@@ -281,9 +269,7 @@ def test_glm_truncated_json_is_reported_as_truncation():
         )
     )
     with pytest.raises(LLMTruncated):
-        GLMClient(_settings()).complete_json(
-            system="s", prompt="p", max_tokens=128
-        )
+        GLMClient(_settings()).complete_json(system="s", prompt="p", max_tokens=128)
     assert FakeHttpClient.calls[0]["json"]["max_tokens"] == 128
 
 
@@ -293,9 +279,7 @@ def test_glm_non_truncated_invalid_json_stays_a_format_error():
             200,
             {
                 "model": "glm-5.3-flash",
-                "choices": [
-                    {"message": {"content": "not json"}, "finish_reason": "stop"}
-                ],
+                "choices": [{"message": {"content": "not json"}, "finish_reason": "stop"}],
             },
         )
     )

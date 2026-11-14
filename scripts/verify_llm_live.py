@@ -153,14 +153,8 @@ def main() -> int:
     )
     if not settings.llm_enabled:
         if Path(".env").exists():
-            print(
-                "NOTE: a .env file was found but did not provide a key for "
-                f"provider {settings.llm_provider!r}."
-            )
-        print(
-            f"FAIL: no API key for provider {settings.llm_provider!r}; "
-            "real LLM calls: 0"
-        )
+            print(f"NOTE: a .env file was found but did not provide a key for provider {settings.llm_provider!r}.")
+        print(f"FAIL: no API key for provider {settings.llm_provider!r}; real LLM calls: 0")
         return 1
     issues = settings.llm_endpoint_issues()
     if issues:

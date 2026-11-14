@@ -29,7 +29,7 @@ from enterprise_business_agent.llm import GLMClient, LLMCancelled, LLMTimeout
 from enterprise_business_agent.llm.transport import active_request_threads
 from enterprise_business_agent.security import AuthorizationPolicy, Principal
 from tests.agent_fakes import ScriptedLLM, finish_response
-from tests.test_phase9_2_1_reliability import _Provider, _ok_body
+from tests.test_phase9_2_1_reliability import _ok_body, _Provider
 
 ANALYST = Principal("key:test", "analyst", frozenset({"metrics:read", "agent:run"}))
 AUTH = {"X-API-Key": "agent-key"}
@@ -206,9 +206,7 @@ def test_unreachable_provider_ends_the_run_with_bounded_retries(env):
         )
     )
     started = time.monotonic()
-    result = _runtime(env, client).run(
-        "销售额是多少", ANALYST, request_id="req-unreachable"
-    )
+    result = _runtime(env, client).run("销售额是多少", ANALYST, request_id="req-unreachable")
     elapsed = time.monotonic() - started
 
     assert result.status.value == "llm_unavailable"
@@ -229,9 +227,7 @@ def test_cancel_interrupts_a_blocked_provider_call(env, provider):
             assert _wait(lambda: provider.requests == 1)
 
             started = time.monotonic()
-            cancelled = client.post(
-                f"/api/v1/agent/runs/{run_id}/cancel", headers=AUTH
-            )
+            cancelled = client.post(f"/api/v1/agent/runs/{run_id}/cancel", headers=AUTH)
             assert cancelled.status_code == 200, cancelled.text
             document = _wait_terminal(client, run_id)
             elapsed = time.monotonic() - started
@@ -243,14 +239,11 @@ def test_cancel_interrupts_a_blocked_provider_call(env, provider):
             assert provider.requests == 1
             assert _wait(lambda: active_request_threads() == 0, timeout=2.0)
 
-            events = client.get(
-                f"/api/v1/agent/runs/{run_id}/events", headers=AUTH
-            ).json()["events"]
+            events = client.get(f"/api/v1/agent/runs/{run_id}/events", headers=AUTH).json()["events"]
             finished = [
                 event
                 for event in events
-                if event["event_type"] == "run_finished"
-                and "worker_id" in (event.get("detail") or {})
+                if event["event_type"] == "run_finished" and "worker_id" in (event.get("detail") or {})
             ]
             assert len(finished) == 1
             assert finished[0]["detail"]["status"] == "cancelled"
@@ -299,23 +292,16 @@ def test_taken_over_lease_blocks_the_stale_result(env, provider):
 
         with store.engine.begin() as connection:
             connection.execute(
-                text(
-                    "UPDATE agent_runs SET lease_expires_at = "
-                    "'2000-01-01T00:00:00+00:00' WHERE run_id = :run_id"
-                ),
+                text("UPDATE agent_runs SET lease_expires_at = '2000-01-01T00:00:00+00:00' WHERE run_id = :run_id"),
                 {"run_id": run_id},
             )
-        attempt = store.acquire_claim(
-            run_id, "other-worker", 30.0, allowed_statuses={"running"}
-        )
+        attempt = store.acquire_claim(run_id, "other-worker", 30.0, allowed_statuses={"running"})
         assert attempt.claim is not None
         new_claim = attempt.claim
 
         # The heartbeat notices the lost lease and cancels the stale attempt;
         # the stale worker then must fail its fenced write.
-        assert _wait(
-            lambda: run_id not in manager._cancel_events, timeout=8.0
-        ), "the stale worker never finished"
+        assert _wait(lambda: run_id not in manager._cancel_events, timeout=8.0), "the stale worker never finished"
         assert _wait(lambda: active_request_threads() == 0, timeout=2.0)
 
         document = store.get(run_id, owner=ANALYST.principal_id)
@@ -325,10 +311,7 @@ def test_taken_over_lease_blocks_the_stale_result(env, provider):
 
         with store.engine.begin() as connection:
             row = connection.execute(
-                text(
-                    "SELECT claim_owner, claim_version, lease_expires_at "
-                    "FROM agent_runs WHERE run_id = :run_id"
-                ),
+                text("SELECT claim_owner, claim_version, lease_expires_at FROM agent_runs WHERE run_id = :run_id"),
                 {"run_id": run_id},
             ).first()
         assert row.claim_owner == "other-worker"

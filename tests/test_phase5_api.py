@@ -99,9 +99,7 @@ AUTH = {"X-API-Key": "agent-key"}
 
 
 def _run(client: TestClient, *, question: str = "分析 2025 年 12 月销售额变化") -> dict:
-    response = client.post(
-        "/api/v1/agent/runs", headers=AUTH, json={"question": question}
-    )
+    response = client.post("/api/v1/agent/runs", headers=AUTH, json={"question": question})
     assert response.status_code == 200, response.text
     return response.json()
 
@@ -116,9 +114,7 @@ def test_run_evidence_findings_and_report_are_queryable(env):
         assert run["report_validation_passed"] is True
         assert run["finding_ids"]
 
-        evidence = client.get(
-            f"/api/v1/agent/runs/{run_id}/evidence", headers=AUTH
-        )
+        evidence = client.get(f"/api/v1/agent/runs/{run_id}/evidence", headers=AUTH)
         assert evidence.status_code == 200
         body = evidence.json()
         assert body["count"] == 2
@@ -130,16 +126,12 @@ def test_run_evidence_findings_and_report_are_queryable(env):
         assert all(item["tool_call_id"] for item in body["evidence"])
 
         evidence_id = body["evidence"][0]["evidence_id"]
-        single = client.get(
-            f"/api/v1/agent/runs/{run_id}/evidence/{evidence_id}", headers=AUTH
-        )
+        single = client.get(f"/api/v1/agent/runs/{run_id}/evidence/{evidence_id}", headers=AUTH)
         assert single.status_code == 200
         assert single.json()["evidence_id"] == evidence_id
         assert single.json()["result"]
 
-        findings = client.get(
-            f"/api/v1/agent/runs/{run_id}/findings", headers=AUTH
-        )
+        findings = client.get(f"/api/v1/agent/runs/{run_id}/findings", headers=AUTH)
         assert findings.status_code == 200
         assert findings.json()["count"] >= 2
         assert all(item["evidence_ids"] for item in findings.json()["findings"])
@@ -153,16 +145,12 @@ def test_run_evidence_findings_and_report_are_queryable(env):
         assert document["report"]["report_info"]["run_id"] == run_id
         assert document["report"]["evidence_references"]
 
-        versions = client.get(
-            f"/api/v1/agent/runs/{run_id}/report/versions", headers=AUTH
-        )
+        versions = client.get(f"/api/v1/agent/runs/{run_id}/report/versions", headers=AUTH)
         assert versions.status_code == 200
         assert versions.json()["count"] == 1
         assert versions.json()["versions"][0]["validation_passed"] is True
 
-        validation = client.get(
-            f"/api/v1/agent/runs/{run_id}/report/validation", headers=AUTH
-        )
+        validation = client.get(f"/api/v1/agent/runs/{run_id}/report/validation", headers=AUTH)
         assert validation.status_code == 200
         assert validation.json()["validation"]["passed"] is True
 
@@ -171,21 +159,15 @@ def test_unknown_run_and_evidence_return_unified_errors(env):
     with _client(env, _investigation_llm()) as client:
         run_id = _run(client)["run_id"]
 
-        missing_run = client.get(
-            "/api/v1/agent/runs/does-not-exist/evidence", headers=AUTH
-        )
+        missing_run = client.get("/api/v1/agent/runs/does-not-exist/evidence", headers=AUTH)
         assert missing_run.status_code == 404
         assert missing_run.json()["error"]["code"] == "agent_run_not_found"
 
-        missing_evidence = client.get(
-            f"/api/v1/agent/runs/{run_id}/evidence/does-not-exist", headers=AUTH
-        )
+        missing_evidence = client.get(f"/api/v1/agent/runs/{run_id}/evidence/does-not-exist", headers=AUTH)
         assert missing_evidence.status_code == 404
         assert missing_evidence.json()["error"]["code"] == "evidence_not_found"
 
-        missing_version = client.get(
-            f"/api/v1/agent/runs/{run_id}/report?version=99", headers=AUTH
-        )
+        missing_version = client.get(f"/api/v1/agent/runs/{run_id}/report?version=99", headers=AUTH)
         assert missing_version.status_code == 404
         assert missing_version.json()["error"]["code"] == "report_not_found"
 
@@ -214,25 +196,19 @@ def test_viewer_role_cannot_read_evidence(env):
 
 def test_phase5_endpoints_report_unavailable_when_disabled(env):
     with _client(env, ScriptedLLM([finish_response("没有查询数据。")]), overrides={"phase5_enabled": False}) as client:
-        response = client.post(
-            "/api/v1/agent/runs", headers=AUTH, json={"question": "测试"}
-        )
+        response = client.post("/api/v1/agent/runs", headers=AUTH, json={"question": "测试"})
         assert response.status_code == 200
         run_id = response.json()["run_id"]
         assert response.json()["report_id"] is None
 
-        evidence = client.get(
-            f"/api/v1/agent/runs/{run_id}/evidence", headers=AUTH
-        )
+        evidence = client.get(f"/api/v1/agent/runs/{run_id}/evidence", headers=AUTH)
         assert evidence.status_code == 503
         assert evidence.json()["error"]["code"] == "evidence_store_unavailable"
 
 
 def test_async_run_evidence_uses_the_run_manager_id(env):
     with _client(env, _investigation_llm()) as client:
-        created = client.post(
-            "/api/v1/agent/runs/async", headers=AUTH, json={"question": "异步证据链"}
-        )
+        created = client.post("/api/v1/agent/runs/async", headers=AUTH, json={"question": "异步证据链"})
         assert created.status_code == 202
         run_id = created.json()["run_id"]
 
@@ -260,9 +236,7 @@ def test_async_run_evidence_uses_the_run_manager_id(env):
             time.sleep(0.05)
         assert document is not None and document["status"] != "running"
 
-        evidence = client.get(
-            f"/api/v1/agent/runs/{run_id}/evidence", headers=AUTH
-        )
+        evidence = client.get(f"/api/v1/agent/runs/{run_id}/evidence", headers=AUTH)
         assert evidence.status_code == 200
         assert evidence.json()["count"] == 2
         assert {item["run_id"] for item in evidence.json()["evidence"]} == {run_id}

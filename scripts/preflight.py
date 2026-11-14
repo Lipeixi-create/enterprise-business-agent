@@ -156,8 +156,7 @@ def check_environment(settings: Settings, env_file: Path | None) -> list[Check]:
             "env.llm_key",
             OK if settings.llm_api_key else FAIL,
             (
-                f"LLM provider {settings.llm_provider!r} has a key configured "
-                "(value not inspected)"
+                f"LLM provider {settings.llm_provider!r} has a key configured (value not inspected)"
                 if settings.llm_api_key
                 else "no LLM API key is configured; agent runs return llm_unavailable"
             ),
@@ -177,9 +176,7 @@ def check_environment(settings: Settings, env_file: Path | None) -> list[Check]:
 def check_database(url: str | None, *, label: str) -> list[Check]:
     checks: list[Check] = []
     if not url:
-        checks.append(
-            Check(f"{label}.connection", FAIL, f"{label} URL is not configured")
-        )
+        checks.append(Check(f"{label}.connection", FAIL, f"{label} URL is not configured"))
         return checks
     if url.lower().startswith("sqlite"):
         checks.append(
@@ -227,11 +224,7 @@ def check_database(url: str | None, *, label: str) -> list[Check]:
             ).one()
             role = str(row[0])
             elevated = [
-                name
-                for name, value in zip(
-                    ("superuser", "createdb", "createrole", "bypassrls"), row[1:]
-                )
-                if value
+                name for name, value in zip(("superuser", "createdb", "createrole", "bypassrls"), row[1:]) if value
             ]
             checks.append(
                 Check(
@@ -260,11 +253,7 @@ def check_database(url: str | None, *, label: str) -> list[Check]:
                     {"role": role},
                 )
             )
-            read_only = str(
-                connection.execute(
-                    text("SHOW transaction_read_only")
-                ).scalar_one()
-            )
+            read_only = str(connection.execute(text("SHOW transaction_read_only")).scalar_one())
             checks.append(
                 Check(
                     f"{label}.transaction_mode",
@@ -304,10 +293,7 @@ def check_readonly_privileges(url: str | None) -> list[Check]:
                     continue
                 for privilege in ("INSERT", "UPDATE", "DELETE", "TRUNCATE"):
                     allowed = connection.execute(
-                        text(
-                            "SELECT has_table_privilege(current_user, :table, "
-                            ":privilege)"
-                        ),
+                        text("SELECT has_table_privilege(current_user, :table, :privilege)"),
                         {"table": table, "privilege": privilege},
                     ).scalar_one()
                     if allowed:
@@ -356,8 +342,7 @@ def check_runtime_store(url: str | None, settings: Settings) -> list[Check]:
             Check(
                 "run_store.configured",
                 FAIL,
-                "RUN_STORE_URL is disabled; durable runs, checkpoints and approvals "
-                "will not survive a restart",
+                "RUN_STORE_URL is disabled; durable runs, checkpoints and approvals will not survive a restart",
             )
         )
         return checks
@@ -400,16 +385,13 @@ def check_runtime_store(url: str | None, settings: Settings) -> list[Check]:
                     )
                 ).one()
                 role = str(row[0])
-                elevated = [name for name, value in zip(
-                    ("superuser", "createdb", "createrole"), row[1:]
-                ) if value]
+                elevated = [name for name, value in zip(("superuser", "createdb", "createrole"), row[1:]) if value]
                 checks.append(
                     Check(
                         "run_store.role_attributes",
                         FAIL if elevated else OK,
                         (
-                            f"runtime role {role!r} has elevated attributes: "
-                            f"{', '.join(elevated)}"
+                            f"runtime role {role!r} has elevated attributes: {', '.join(elevated)}"
                             if elevated
                             else f"runtime role {role!r} is a plain login role"
                         ),
@@ -451,18 +433,12 @@ def check_runtime_store(url: str | None, settings: Settings) -> list[Check]:
             Check(
                 "run_store.schema",
                 FAIL if missing else OK,
-                (
-                    f"missing runtime tables: {missing}"
-                    if missing
-                    else f"{len(expected)} runtime tables present"
-                ),
+                (f"missing runtime tables: {missing}" if missing else f"{len(expected)} runtime tables present"),
                 {"missing": missing},
             )
         )
         columns = (
-            {str(item["name"]) for item in inspector.get_columns("agent_runs")}
-            if "agent_runs" in names
-            else set()
+            {str(item["name"]) for item in inspector.get_columns("agent_runs")} if "agent_runs" in names else set()
         )
         missing_claims = [name for name in _CLAIM_COLUMNS if name not in columns]
         checks.append(
@@ -485,8 +461,7 @@ def check_runtime_store(url: str | None, settings: Settings) -> list[Check]:
         checks.append(
             Check(
                 "run_store.checkpoint",
-                OK if {"thread_id", "checkpoint_id", "checkpoint_value"} <= checkpoint_columns
-                else FAIL,
+                OK if {"thread_id", "checkpoint_id", "checkpoint_value"} <= checkpoint_columns else FAIL,
                 (
                     "checkpoint tables can persist and restore LangGraph state"
                     if {"thread_id", "checkpoint_id", "checkpoint_value"} <= checkpoint_columns
@@ -554,11 +529,7 @@ def check_transport_and_keys(settings: Settings, database_url: str | None) -> li
                     "security.tls",
                     OK if sslmode in {"verify-full", "verify-ca"} else WARN,
                     f"database TLS mode is {sslmode}"
-                    + (
-                        ""
-                        if sslmode in {"verify-full", "verify-ca"}
-                        else "; certificate verification is not enabled"
-                    ),
+                    + ("" if sslmode in {"verify-full", "verify-ca"} else "; certificate verification is not enabled"),
                 )
             )
         else:
@@ -566,8 +537,7 @@ def check_transport_and_keys(settings: Settings, database_url: str | None) -> li
                 Check(
                     "security.tls",
                     WARN,
-                    "no sslmode=verify-full/verify-ca in the connection URL; "
-                    "traffic may be unencrypted or unverified",
+                    "no sslmode=verify-full/verify-ca in the connection URL; traffic may be unencrypted or unverified",
                 )
             )
     checks.append(
@@ -612,9 +582,7 @@ def check_observability(settings: Settings) -> list[Check]:
             )
         )
         return checks
-    endpoint = settings.otel_exporter_endpoint or os.getenv(
-        "OTEL_EXPORTER_OTLP_ENDPOINT"
-    )
+    endpoint = settings.otel_exporter_endpoint or os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT")
     checks.append(
         Check(
             "observability.tracing",
@@ -648,8 +616,7 @@ def check_api(base_url: str | None, *, timeout: float) -> list[Check]:
             Check(
                 "api.reachable",
                 SKIP,
-                "no --api-base-url supplied; health, metrics and approval endpoints "
-                "were not probed",
+                "no --api-base-url supplied; health, metrics and approval endpoints were not probed",
             )
         ]
     import httpx
@@ -660,16 +627,12 @@ def check_api(base_url: str | None, *, timeout: float) -> list[Check]:
         ("api.metrics", "/api/v1/metrics", {200, 401, 403}),
         ("api.approvals", "/api/v1/agent/approvals", {200, 401, 403}),
     )
-    with httpx.Client(
-        base_url=base_url, timeout=timeout, trust_env=False
-    ) as client:
+    with httpx.Client(base_url=base_url, timeout=timeout, trust_env=False) as client:
         for name, path, allowed in probes:
             try:
                 response = client.get(path)
             except Exception as exc:  # noqa: BLE001
-                checks.append(
-                    Check(name, FAIL, f"{path} unreachable: {type(exc).__name__}")
-                )
+                checks.append(Check(name, FAIL, f"{path} unreachable: {type(exc).__name__}"))
                 continue
             if response.status_code in allowed:
                 checks.append(
@@ -685,8 +648,7 @@ def check_api(base_url: str | None, *, timeout: float) -> list[Check]:
                     Check(
                         name,
                         FAIL,
-                        f"{path} responded {response.status_code}, expected one of "
-                        f"{sorted(allowed)}",
+                        f"{path} responded {response.status_code}, expected one of {sorted(allowed)}",
                         {"status_code": response.status_code},
                     )
                 )
@@ -726,9 +688,7 @@ def _print_human(checks: list[Check], counts: dict[str, int]) -> None:
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(
-        description="Read-only production preflight. Never writes to the database."
-    )
+    parser = argparse.ArgumentParser(description="Read-only production preflight. Never writes to the database.")
     parser.add_argument(
         "--env-file",
         default=None,
